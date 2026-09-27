@@ -27,11 +27,13 @@ After installing, the user must restart Claude Code before the `deepseek`, `glm`
 
 | Work | Goes to |
 |---|---|
-| Well-specified coding with clear tests: features, fix rounds, refactors, test gaps, CI/scripts | `deepseek` or `glm` subagent (or `model-relay` directly) |
+| Well-specified routine coding with clear tests: features, fix rounds, refactors, test gaps, CI/scripts | `deepseek` or `glm` subagent (or `model-relay` directly) |
+| Complex or high-risk coding in its own lane: cross-cutting or underspecified changes, authority, security or money logic, tricky concurrency, and escalations | Opus lane (`Agent`, model opus). Sonnet lane for moderate, well-scoped work |
 | Routine first reviews and fix-round re-reviews | `codex` subagent (or `codex-review` directly), gpt-5.6-terra on the user's ChatGPT plan |
 | Schema migrations and shared contracts, live ops and deploys, design and UX, first review of authority, money or security code | Opus (`Agent`, model opus) |
 | Docs edits, mechanical sweeps, status checks | Sonnet or haiku, or a script |
 
+- **Escalate:** move a task to a Sonnet or Opus lane when a cheap model fails review twice on it, or when it turns out underspecified or riskier than it looked. Record the escalation in the tracker.
 - **Review before merge:** every change from any model gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
 - **DeepSeek and GLM run only in worktrees,** never in a checkout holding `.env` or secrets.
 - **Never send external models** secrets, credentials, customer or contact data, or exports.

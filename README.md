@@ -4,11 +4,14 @@
 
 | Role | Model | Billed to |
 |---|---|---|
-| Orchestrator, migrations, live ops, design, first review of authority, money or security code | Claude (Opus/Sonnet) | your Claude subscription |
-| Well-specified coding: features, fix rounds, refactors, tests | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
+| Orchestration, merges, first review of authority, money, security or migration code | **Claude Opus** (orchestrator) | your Claude subscription |
+| Complex or high-risk coding in its own lane: migrations and shared contracts, authority, security or money logic, cross-cutting or underspecified changes, live ops and deploys, design and UI, and anything escalated | **Claude Opus** lane (Sonnet for moderate work) | your Claude subscription |
+| Well-specified routine coding in its own lane: features, fix rounds, refactors, tests | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
 | Routine code reviews and re-reviews | **OpenAI Codex** (`gpt-5.6-terra`, Codex CLI) | your ChatGPT plan |
 
 ![How lanes works: a Claude orchestrator fans work out to parallel git-worktree lanes, where DeepSeek or GLM coders run behind a guarded relay; every change goes to an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, then merges and is verified on main.](docs/lanes-infographic.png)
+
+**Escalation:** a task moves up to a Sonnet or Opus lane if a cheap model fails review twice on it, or if the task turns out to be underspecified or riskier than it looked.
 
 The quality gates don't change. Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.
 

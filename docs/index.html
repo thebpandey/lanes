@@ -322,7 +322,7 @@ footer p{margin:0}
 
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
-      <li style="--c:var(--review)"><h3>Cheapest capable model</h3><p>Every job goes to the cheapest model that can do it well: DeepSeek or GLM for well-specified coding, Codex for routine reviews, Claude for the rest.</p></li>
+      <li style="--c:var(--review)"><h3>Cheapest capable model</h3><p>Every job goes to the cheapest model that can do it well: DeepSeek or GLM for well-specified routine coding, Codex for routine reviews, Claude Opus for orchestration and for complex or high-risk coding in its own lanes. Work that keeps failing review with a cheap model is escalated to Claude.</p></li>
       <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.</p></li>
     </ul>
 
@@ -359,12 +359,17 @@ footer p{margin:0}
       <thead><tr><th scope="col">Role</th><th scope="col">Model</th><th scope="col">Billed to</th></tr></thead>
       <tbody>
         <tr class="r-guard">
-          <th scope="row"><span class="who">Guards the gates</span>Orchestrator, migrations, live ops, design, first review of authority, money or security code</th>
-          <td data-label="Model"><span class="model">Claude</span> (Opus/Sonnet)</td>
+          <th scope="row"><span class="who">Guards the gates</span>Orchestration, merges, first review of authority, money, security or migration code</th>
+          <td data-label="Model"><span class="model">Claude Opus</span> (orchestrator)</td>
+          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+        </tr>
+        <tr class="r-guard">
+          <th scope="row"><span class="who">Does the hard work</span>Complex or high-risk coding in its own lane: migrations and contracts, authority, security or money logic, cross-cutting or underspecified changes, live ops, design, and escalations</th>
+          <td data-label="Model"><span class="model">Claude Opus</span> lane (Sonnet for moderate work)</td>
           <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
         </tr>
         <tr class="r-work">
-          <th scope="row"><span class="who">Does the work</span>Well-specified coding: features, fix rounds, refactors, tests</th>
+          <th scope="row"><span class="who">Does the routine work</span>Well-specified routine coding: features, fix rounds, refactors, tests</th>
           <td data-label="Model"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>) or <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter)</td>
           <td data-label="Billed to"><span class="pill">your DeepSeek / OpenRouter API keys</span></td>
         </tr>
@@ -375,7 +380,7 @@ footer p{margin:0}
         </tr>
       </tbody>
     </table>
-    <p class="routes-note" id="routes-note">Docs edits, mechanical sweeps and status checks go to Sonnet or haiku, or a script. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
+    <p class="routes-note" id="routes-note">A task that fails review twice with DeepSeek or GLM, or turns out riskier than it looked, is escalated to a Sonnet or Opus lane. Docs edits, mechanical sweeps and status checks go to Sonnet or haiku, or a script. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
     <ul class="gates">
       <li><strong>Review before merge</strong>Every change from any model gets an independent review. Fix rounds loop until CLEAN.</li>
       <li><strong>Workers stay in worktrees</strong>DeepSeek and GLM never run in a checkout holding <code>.env</code> or secrets.</li>
