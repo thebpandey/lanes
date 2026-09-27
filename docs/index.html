@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lanes · orchestration harness for Claude Code</title>
-<meta name="description" content="lanes is a Claude Code skill that runs your project in parallel git-worktree lanes. Cheap models do the work, strong models guard the gates.">
+<meta name="description" content="lanes is a Claude Code skill that triages every task by complexity and runs your project in parallel git-worktree lanes: Opus for complex work, Sonnet for moderate, DeepSeek or GLM for routine, Codex for reviews.">
 <meta property="og:title" content="lanes: a token-efficient orchestration harness for Claude Code">
-<meta property="og:description" content="Cheap models do the work. Strong models guard the gates.">
+<meta property="og:description" content="The right model for every task. The same gates for every change.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thebpandey.github.io/lanes/">
 <meta property="og:image" content="https://thebpandey.github.io/lanes/lanes-infographic.png">
@@ -260,7 +260,7 @@ footer p{margin:0}
     <div>
       <p class="eyebrow"><span>Claude Code skill</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
       <h1 id="hero-title">lanes</h1>
-      <p class="pitch"><span class="w">Cheap models do the work.</span> <span class="g">Strong models guard the gates.</span></p>
+      <p class="pitch"><span class="w">The right model for every task.</span> <span class="g">The same gates for every change.</span></p>
       <p class="lede">A token-efficient orchestration harness that turns one Claude Code session into an orchestrator. It audits a project, even one left half-finished, plans the remaining work, and runs it in parallel lanes: each lane is a git worktree with one agent working in it.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="https://github.com/thebpandey/lanes">
@@ -322,7 +322,7 @@ footer p{margin:0}
 
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
-      <li style="--c:var(--review)"><h3>Cheapest capable model</h3><p>Every job goes to the cheapest model that can do it well: Each task is triaged by complexity first: Opus for complex work from the start, Sonnet for moderate work, DeepSeek or GLM for routine work, and Codex for routine reviews.</p></li>
+      <li style="--c:var(--review)"><h3>Triage by complexity</h3><p>Every task gets a tier before dispatch, and the tier picks the model from the start: Opus for complex work, Sonnet for moderate work, DeepSeek or GLM for routine work, and Codex for routine reviews. Tasks only ever move up a tier.</p></li>
       <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.</p></li>
     </ul>
 
@@ -330,7 +330,7 @@ footer p{margin:0}
       <div>
         <h3>Per-task flow</h3>
         <ol class="flow">
-          <li><span><strong>Dev in a worktree</strong>, by the routed agent.</span></li>
+          <li><span><strong>Triage</strong> the task into a tier, then <strong>dev in a worktree</strong> with that tier's agent.</span></li>
           <li class="gate-step"><span><strong>Independent review.</strong> The reviewer is never the author.</span></li>
           <li class="gate-step"><span><strong>Fix rounds</strong> loop until the review is CLEAN.</span></li>
           <li><span><strong><code>git merge --no-ff</code></strong> into the main branch.</span></li>
@@ -340,9 +340,9 @@ footer p{margin:0}
         </ol>
       </div>
       <div class="aside">
-        <h3>Why the relay design</h3>
+        <h3>Why the relay design (T1 lanes)</h3>
         <p>A Claude Code subagent file can't point at another provider: it has no <code>baseUrl</code> field, and <code>model</code> only takes Claude models.</p>
-        <p>So each external model runs as a separate headless Claude Code process pointed at that provider's Anthropic-compatible API (<code>claude-via &lt;provider&gt;</code>). A small guarded relay subagent hands tasks to it.</p>
+        <p>So each external model (DeepSeek, GLM) runs as a separate headless Claude Code process pointed at that provider's Anthropic-compatible API (<code>claude-via &lt;provider&gt;</code>). A small guarded relay subagent hands tasks to it.</p>
         <p>A <code>PreToolUse</code> hook (<code>relay-guard</code>) blocks every command except the relay itself; without it, the small relay model does the task itself instead of delegating.</p>
         <p>Every run leaves a job record with the model that actually did the work.</p>
       </div>
@@ -412,18 +412,18 @@ footer p{margin:0}
     <div class="code">
       <div class="code-head"><span>bash · install</span><button class="copy" type="button" aria-label="Copy install commands">Copy</button></div>
 <pre><code>git clone https://github.com/thebpandey/lanes ~/.claude/skills/lanes
-bash ~/.claude/skills/lanes/install.sh            <span class="c"># installs relays, configs, and the deepseek/glm/codex subagents</span>
+bash ~/.claude/skills/lanes/install.sh            <span class="c"># installs relays, configs, and the opus-lane/sonnet-lane/deepseek/glm/codex subagents</span>
 bash ~/.claude/skills/lanes/install.sh --smoke    <span class="c"># optional: one tiny task through each provider</span>
 bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Linux): timer that cleans orphaned agent work</span></code></pre>
     </div>
     <div class="grid-2">
       <div>
-        <p class="note"><b>Then restart Claude Code</b><span>so the <code>deepseek</code>, <code>glm</code> and <code>codex</code> subagents load. Until then, the direct commands work without a restart.</span></p>
+        <p class="note"><b>Then restart Claude Code</b><span>so the <code>opus-lane</code>, <code>sonnet-lane</code>, <code>deepseek</code>, <code>glm</code> and <code>codex</code> subagents load. Until then, the direct commands work without a restart.</span></p>
         <h3>What it installs</h3>
         <ul class="installs">
           <li>In <code>~/.local/bin</code>: <code>claude-via</code>, <code>claude-deepseek</code>, <code>claude-glm</code>, <code>model-relay</code>, <code>relay-guard</code> and <code>codex-review</code>.</li>
           <li><code>~/.claude/{deepseek,glm}.json</code>, which hold the base URL, the model and the <em>name</em> of the key variable.</li>
-          <li><code>~/.claude/agents/{deepseek,glm,codex}.md</code>.</li>
+          <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: tiered Claude lane coders (Opus at high effort, Sonnet at medium), and <code>~/.claude/agents/{deepseek,glm,codex}.md</code>: guarded relays.</li>
         </ul>
       </div>
       <div>
@@ -447,8 +447,8 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
     <h2 id="use-title">Say it in any git project.</h2>
     <p class="intro">Start Claude Code in the project and talk to the orchestrator.</p>
     <ul class="cmds">
-      <li><span class="say">/lanes start</span><p>Audits the project (instructions, git history, worktrees, tracker), shows what's done, in progress, ready and blocked, asks a few setup questions one at a time, then runs the lanes.</p></li>
-      <li><span class="say">lane update</span><p>The active lanes, with agent, task, concrete progress and an estimated %.</p></li>
+      <li><span class="say">/lanes start</span><p>Audits the project (instructions, git history, worktrees, tracker), shows what's done, in progress, ready and blocked, triages each task into a tier, asks a few setup questions one at a time, then runs the lanes.</p></li>
+      <li><span class="say">lane update</span><p>The active lanes, with agent and tier, task, concrete progress and an estimated %.</p></li>
       <li><span class="say">lane update all</span><p>Every workstream task and its state.</p></li>
       <li><span class="say">pause lanes · resume the lanes</span><p>Safe pause notes per lane, and resuming into the same worktrees.</p></li>
     </ul>
@@ -485,7 +485,7 @@ cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 codex-review main &lt; checklis
     <div class="code">
       <div class="code-head"><span>bash · uninstall</span><button class="copy" type="button" aria-label="Copy uninstall commands">Copy</button></div>
 <pre><code>rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guard,codex-review}
-rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex}.md
+rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex,opus-lane,sonnet-lane}.md
 systemctl --user disable --now lanes-watchdog.timer 2&gt;/dev/null; rm -rf ~/.claude/skills/lanes</code></pre>
     </div>
   </div>
