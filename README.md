@@ -8,6 +8,8 @@
 | Well-specified coding: features, fix rounds, refactors, tests | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
 | Routine code reviews and re-reviews | **OpenAI Codex** (`gpt-5.6-terra`, Codex CLI) | your ChatGPT plan |
 
+![How lanes works: a Claude orchestrator fans work out to parallel git-worktree lanes, where DeepSeek or GLM coders run behind a guarded relay; every change goes to an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, then merges and is verified on main.](docs/lanes-infographic.png)
+
 The quality gates don't change. Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.
 
 ## Why the relay design
@@ -75,5 +77,7 @@ rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guar
 rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex}.md
 systemctl --user disable --now lanes-watchdog.timer 2>/dev/null; rm -rf ~/.claude/skills/lanes
 ```
+
+Website: https://thebpandey.github.io/lanes/
 
 MIT licensed. Not affiliated with Anthropic, OpenAI, DeepSeek, Z.ai or OpenRouter.
