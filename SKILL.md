@@ -1,6 +1,6 @@
 ---
 name: lanes
-description: Token-efficient multi-lane orchestration for Claude Code. Use it to start or resume work on an existing (possibly unfinished) project, run parallel worktree lanes, route coding to cheap DeepSeek/GLM subagents and reviews to Codex, and report status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
+description: Token-efficient multi-lane orchestration for Claude Code. Use it to start or resume work on an existing (possibly unfinished) project, run parallel worktree lanes, triage each task by complexity (Opus for complex work from the start, Sonnet for moderate, DeepSeek/GLM for routine) and route reviews to Codex, and report status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
 ---
 
 # Lanes: orchestration harness
@@ -13,48 +13,51 @@ Paths: `K=~/.claude/skills/lanes`. The per-project state dir comes from `S=$(. $
 
 Run `bash $K/install.sh --check`. If something is missing, run `bash $K/install.sh` and relay its ACTION lines to the user exactly. Missing API keys are the user's job: they add `DEEPSEEK_API_KEY` from platform.deepseek.com and `OPENROUTER_API_KEY` from openrouter.ai/keys to `~/.bashrc`. Never ask the user to paste a key into the chat, and never write a key anywhere yourself.
 
-After installing, the user must restart Claude Code before the `deepseek`, `glm` and `codex` subagents appear. Until then, use the direct commands in §3. They need no restart.
+After installing, the user must restart Claude Code before the `opus-lane`, `sonnet-lane`, `deepseek`, `glm` and `codex` subagents appear. Until then, use the direct commands in §3. They need no restart.
 
 ## 1. Start or resume on a project (`/lanes start`)
 
 1. Read the project instructions (`AGENTS.md`, `CLAUDE.md`), the docs index, `git log --oneline -30`, `git worktree list`, open branches, and the tracker. Use Beads (`bd ready`, `bd list`) if present, then GitHub issues, then whatever the project uses. If the project has no tracker, ask the user whether to set up Beads. Don't invent a parallel TODO file.
 2. Find unfinished work: worktrees with uncommitted changes (never reset them), unmerged branches, notes saying PAUSED, failing CI.
-3. Build a short plan: done / in progress / ready / blocked, with dependencies. Show it as the "lane update all" table (§6).
+3. Build a short plan: done / in progress / ready / blocked, with dependencies. Give every open task a **tier** (§2), which decides its lane model before anything is dispatched. Show it as the "lane update all" table (§6).
 4. Ask the user, one question at a time, only for what you cannot infer: lane cap (default 6 concurrent agents, reviews included), priorities, which actions need their approval (push, deploy, external writes), and the commit trailer policy.
 5. Save these answers to this project's memory: cap, routing, approvals, report formats. Future sessions then resume without asking again.
 
-## 2. Routing (cheapest capable model first; quality gates unchanged)
+## 2. Triage, then route (complexity decides the model from the start)
 
-| Work | Goes to |
-|---|---|
-| Well-specified routine coding with clear tests: features, fix rounds, refactors, test gaps, CI/scripts | `deepseek` or `glm` subagent (or `model-relay` directly) |
-| Complex or high-risk coding in its own lane: cross-cutting or underspecified changes, authority, security or money logic, tricky concurrency, and escalations | Opus lane (`Agent`, model opus). Sonnet lane for moderate, well-scoped work |
-| Routine first reviews and fix-round re-reviews | `codex` subagent (or `codex-review` directly), gpt-5.6-terra on the user's ChatGPT plan |
-| Schema migrations and shared contracts, live ops and deploys, design and UX, first review of authority, money or security code | Opus (`Agent`, model opus) |
-| Docs edits, mechanical sweeps, status checks | Sonnet or haiku, or a script |
+Before dispatching, give every task a **tier**, and record it in the tracker and in the lane's `lanes.tsv` agent column (e.g. `Opus (T3)`). Pick the highest tier any signal points to. When in doubt between two tiers, pick the higher one.
 
-- **Escalate:** move a task to a Sonnet or Opus lane when a cheap model fails review twice on it, or when it turns out underspecified or riskier than it looked. Record the escalation in the tracker.
-- **Review before merge:** every change from any model gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
-- **DeepSeek and GLM run only in worktrees,** never in a checkout holding `.env` or secrets.
-- **Never send external models** secrets, credentials, customer or contact data, or exports.
+| Tier | Signals (any one is enough) | Dev lane | Review |
+|---|---|---|---|
+| **T3 Complex** (high reasoning) | Ambiguous or underspecified; cross-cutting or architectural; concurrency, races, locks or state machines; authority, security, money or privacy logic; schema migrations or shared contracts; debugging an unknown root cause; live ops or deploys; design and UX; hard to reverse | **`opus-lane`** (Opus, high effort) | Opus for authority, security, money or migrations; otherwise Codex |
+| **T2 Moderate** | Clear spec, but spans several files or packages or needs design judgment; unfamiliar area of the codebase; moderate blast radius | **`sonnet-lane`** (Sonnet) | Codex |
+| **T1 Routine** | Well-specified, local change with clear acceptance tests: small features, fix rounds from a review, refactors, test gaps, CI or scripts, docs-with-code | **`deepseek`** or **`glm`** (or `model-relay`) | Codex |
+| **T0 Mechanical** | Sweeps, renames, status or evidence gathering | haiku or a script | none, or spot-check |
+
+- **Re-tier upward:** re-tier as soon as a lane reports the task is harder or riskier than triaged, or after two failed reviews at the current tier. Never downgrade a task mid-flight.
+- **Fix rounds:** they usually stay with the author's tier. A fix round for T3 code may go to T1 when the review findings are precise and local.
+- **Review before merge:** every change gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
+- **DeepSeek and GLM run only in worktrees,** never in a checkout holding `.env` or secrets. Never send external models secrets, credentials, customer or contact data, or exports.
 - **If Codex is not installed,** use a Sonnet reviewer following `$K/rules/REVIEW_RULES.md`.
+- **Tell the user the tier:** in "lane update" and "lane update all", show each task's tier next to its agent.
 
 ## 3. Dispatch
 
 - **Worktree:** `$K/lane/new-worktree.sh <branch> [base]` creates `<repo>/.claude/worktrees/<branch>` and wires JS monorepo `node_modules` so workspace packages resolve to the worktree.
 - **Registry:** add or replace the lane's row in `$S/lanes.tsv`: lane, agent, task, worktree, relay job.
 - **Brief:** start from `$K/rules/brief-template.md` and keep it short. It must name the worktree path, the task id, the acceptance checks and the tests. For Claude agents, reference `$K/rules/LANE_RULES.md`. For DeepSeek and GLM, paste its contents, since they cannot see this skill.
-- **DeepSeek and GLM, preferred from the orchestrator:** Bash with `run_in_background: true`:
+- **T3 and T2 lanes:** `Agent` with `subagent_type: opus-lane` (T3) or `sonnet-lane` (T2). Until Claude Code restarts after install, use a plain `Agent` with model opus or sonnet.
+- **T1 lanes (DeepSeek or GLM), preferred from the orchestrator:** Bash with `run_in_background: true`:
   `cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < $S/lanes/<lane>/brief.md` (or `glm`). It costs no Claude tokens, and you are notified on completion. If the output says STILL RUNNING, run `model-relay --wait <job>`.
 - **Codex review, preferred from the orchestrator:** Bash with `run_in_background: true`:
   `cd <worktree> && RELAY_WAIT_S=6000 codex-review <base-ref> < checklist.md`. The checklist is 3–10 task-specific lines, authority first.
 - **Subagents** (`deepseek`, `glm`, `codex`) are guarded haiku relays. Use them when a Task-tool call is more convenient. Give them the worktree path and the full brief or checklist.
-- **Claude agents:** `Agent` with `model` set per §2, the brief, and "final message ≤ 12 lines; full report to `<scratch>/report.md`".
+- **Every Claude lane brief** ends with "final message ≤ 12 lines; full report to `<scratch>/report.md`".
 - **Verify who did the work:** every relay run leaves `~/.local/state/model-relay.*` or `~/.local/state/codex-review.*` with `engine`/`model`, `cwd`, `rc` and output. The `model:` line comes from real usage data. DeepSeek and GLM call themselves "Claude"; ignore that.
 
 ## 4. Per-task flow
 
-dev in worktree → independent review → fix rounds until CLEAN → `git merge --no-ff` into the main branch → run the changed suites plus typecheck on main → close the tracker item with evidence (SHA, counts) → remove the worktree and branch → push only if the user allows it (run the secret scan first, and only fast-forward) → refill the lane from the ready queue.
+triage (tier → lane model) → dev in worktree → independent review → fix rounds until CLEAN → `git merge --no-ff` into the main branch → run the changed suites plus typecheck on main → close the tracker item with evidence (SHA, counts) → remove the worktree and branch → push only if the user allows it (run the secret scan first, and only fast-forward) → refill the lane from the ready queue.
 
 On the main checkout, stage explicit paths only. It may carry the user's local edits: never `commit -a`, and never overwrite or revert them. If a merge touches a file with local edits, save the local diff, merge, then re-apply it.
 
@@ -70,7 +73,7 @@ On the main checkout, stage explicit paths only. It may carry the user's local e
 
 - **"lane update":**
   - One lead line: are all lanes working or is any stuck, and how the % was estimated.
-  - A table `| Lane | Agent | Active task | Where it is | Est. |`. "Where it is" is concrete: commits, files, the test running, minutes in. Est. is a labelled rough %, backed by evidence from `lane-status.sh`.
+  - A table `| Lane | Agent (tier) | Active task | Where it is | Est. |`. "Where it is" is concrete: commits, files, the test running, minutes in. Est. is a labelled rough %, backed by evidence from `lane-status.sh`.
   - What merged or deployed since the last update.
   - Any problem found, and how you will handle it.
 - **"lane update all":** one table of every workstream's tasks: done, in progress (with agent and %), ready, and blocked (with the gate or owner decision), built from the tracker plus live lane state.

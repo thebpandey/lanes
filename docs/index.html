@@ -315,14 +315,14 @@ footer p{margin:0}
 
     <figure class="info" id="info">
       <img src="lanes-infographic.webp" width="1672" height="941" loading="lazy" decoding="async"
-        alt="Flow of the lanes harness. You talk to a Claude orchestrator that plans, dispatches, merges and reports while keeping its own context small. It sends work to parallel git worktree lanes, each with one agent: a DeepSeek or GLM 5.3 Flash coder running as a separate headless Claude Code process on the provider's API, behind a guarded relay where relay-guard lets only the relay command run, and each run leaves a job record with the real model and exit code. Every change then goes to an independent review, by Codex (gpt-5.6-terra) or by Claude Opus for security, money and migrations, and fix rounds loop back until the review is clean. Clean work is merged with --no-ff, verified on main, and the task is closed. A side panel lists the token discipline: 12-line summaries with full reports on disk, one-call lane status, a watchdog on a timer rather than in chat, and restarts at quiet points. Bills go to your Claude subscription, DeepSeek API, OpenRouter and ChatGPT plan.">
+        alt="How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek or GLM behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.">
       <p class="missing">Infographic: lanes-infographic.png (see the step list below for the same flow).</p>
       <figcaption><span>The lanes flow, end to end.</span><a href="lanes-infographic.png">Open full size</a></figcaption>
     </figure>
 
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
-      <li style="--c:var(--review)"><h3>Cheapest capable model</h3><p>Every job goes to the cheapest model that can do it well: DeepSeek or GLM for well-specified routine coding, Codex for routine reviews, Claude Opus for orchestration and for complex or high-risk coding in its own lanes. Work that keeps failing review with a cheap model is escalated to Claude.</p></li>
+      <li style="--c:var(--review)"><h3>Cheapest capable model</h3><p>Every job goes to the cheapest model that can do it well: Each task is triaged by complexity first: Opus for complex work from the start, Sonnet for moderate work, DeepSeek or GLM for routine work, and Codex for routine reviews.</p></li>
       <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.</p></li>
     </ul>
 
@@ -353,34 +353,49 @@ footer p{margin:0}
 <section class="block" id="routing" aria-labelledby="routing-title">
   <div class="wrap">
     <p class="kicker"><b>02</b> Routing</p>
-    <h2 id="routing-title">Who does what, and who pays for it.</h2>
-    <p class="intro">Each role bills to an account you already hold. Keys stay in your shell rc; the skill never stores them.</p>
+    <h2 id="routing-title">Triage first. The tier picks the model.</h2>
+    <p class="intro">Every task is triaged by complexity before dispatch, so hard problems go straight to Opus and only routine work goes to the cheap models. Each tier bills to an account you already hold. Keys stay in your shell rc; the skill never stores them.</p>
     <table class="routes" aria-describedby="routes-note">
-      <thead><tr><th scope="col">Role</th><th scope="col">Model</th><th scope="col">Billed to</th></tr></thead>
+      <thead><tr><th scope="col">Tier / role</th><th scope="col">Lane</th><th scope="col">Billed to</th></tr></thead>
       <tbody>
         <tr class="r-guard">
-          <th scope="row"><span class="who">Guards the gates</span>Orchestration, merges, first review of authority, money, security or migration code</th>
-          <td data-label="Model"><span class="model">Claude Opus</span> (orchestrator)</td>
+          <th scope="row"><span class="who">T3 Complex</span>Ambiguous or cross-cutting work; concurrency or state machines; authority, security or money logic; migrations and contracts; unknown-root-cause debugging; live ops; design</th>
+          <td data-label="Lane"><span class="model">Claude Opus</span> (<code>opus-lane</code>, high effort)</td>
           <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
         </tr>
         <tr class="r-guard">
-          <th scope="row"><span class="who">Does the hard work</span>Complex or high-risk coding in its own lane: migrations and contracts, authority, security or money logic, cross-cutting or underspecified changes, live ops, design, and escalations</th>
-          <td data-label="Model"><span class="model">Claude Opus</span> lane (Sonnet for moderate work)</td>
+          <th scope="row"><span class="who">T2 Moderate</span>Clear spec, but multi-file or needs design judgment</th>
+          <td data-label="Lane"><span class="model">Claude Sonnet</span> (<code>sonnet-lane</code>)</td>
           <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
         </tr>
         <tr class="r-work">
-          <th scope="row"><span class="who">Does the routine work</span>Well-specified routine coding: features, fix rounds, refactors, tests</th>
-          <td data-label="Model"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>) or <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter)</td>
+          <th scope="row"><span class="who">T1 Routine</span>Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps</th>
+          <td data-label="Lane"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>) or <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter)</td>
           <td data-label="Billed to"><span class="pill">your DeepSeek / OpenRouter API keys</span></td>
         </tr>
+        <tr class="r-work">
+          <th scope="row"><span class="who">T0 Mechanical</span>Sweeps, status, evidence</th>
+          <td data-label="Lane"><span class="model">haiku</span> or a script</td>
+          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+        </tr>
         <tr class="r-review">
-          <th scope="row"><span class="who">Reviews the work</span>Routine code reviews and re-reviews</th>
-          <td data-label="Model"><span class="model">OpenAI Codex</span> (<code>gpt-5.6-terra</code>, Codex CLI)</td>
+          <th scope="row"><span class="who">Reviews</span>Routine reviews and re-reviews</th>
+          <td data-label="Lane"><span class="model">OpenAI Codex</span> (<code>gpt-5.6-terra</code>)</td>
           <td data-label="Billed to"><span class="pill">your ChatGPT plan</span></td>
+        </tr>
+        <tr class="r-review">
+          <th scope="row"><span class="who">First review of risky code</span>Authority, security, money or migration code</th>
+          <td data-label="Lane"><span class="model">Claude Opus</span></td>
+          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+        </tr>
+        <tr class="r-guard">
+          <th scope="row"><span class="who">Orchestration</span>Plans, triages, dispatches, merges, reports</th>
+          <td data-label="Lane"><span class="model">Claude Opus</span> (orchestrator)</td>
+          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
         </tr>
       </tbody>
     </table>
-    <p class="routes-note" id="routes-note">A task that fails review twice with DeepSeek or GLM, or turns out riskier than it looked, is escalated to a Sonnet or Opus lane. Docs edits, mechanical sweeps and status checks go to Sonnet or haiku, or a script. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
+    <p class="routes-note" id="routes-note">Tasks only ever move <b>up</b> a tier: when a lane reports a task is harder or riskier than triaged, or after two failed reviews at the current tier. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
     <ul class="gates">
       <li><strong>Review before merge</strong>Every change from any model gets an independent review. Fix rounds loop until CLEAN.</li>
       <li><strong>Workers stay in worktrees</strong>DeepSeek and GLM never run in a checkout holding <code>.env</code> or secrets.</li>

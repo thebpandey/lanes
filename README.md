@@ -1,17 +1,24 @@
 # lanes: a token-efficient orchestration harness for Claude Code
 
-`lanes` is a Claude Code skill that turns one session into an orchestrator. It audits a project, even one left half-finished, plans the remaining work, and runs it in parallel **lanes**, each lane being a git worktree with one agent working in it. It sends each job to the cheapest model that can do it well:
+`lanes` is a Claude Code skill that turns one session into an orchestrator. It audits a project, even one left half-finished, plans the remaining work, and runs it in parallel **lanes**, each lane being a git worktree with one agent working in it.
 
-| Role | Model | Billed to |
-|---|---|---|
-| Orchestration, merges, first review of authority, money, security or migration code | **Claude Opus** (orchestrator) | your Claude subscription |
-| Complex or high-risk coding in its own lane: migrations and shared contracts, authority, security or money logic, cross-cutting or underspecified changes, live ops and deploys, design and UI, and anything escalated | **Claude Opus** lane (Sonnet for moderate work) | your Claude subscription |
-| Well-specified routine coding in its own lane: features, fix rounds, refactors, tests | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
-| Routine code reviews and re-reviews | **OpenAI Codex** (`gpt-5.6-terra`, Codex CLI) | your ChatGPT plan |
+Every task is **triaged by complexity before dispatch**. The tier picks the model from the start: hard problems go straight to Opus, and only routine work goes to the cheap models.
 
-![How lanes works: a Claude orchestrator fans work out to parallel git-worktree lanes, where DeepSeek or GLM coders run behind a guarded relay; every change goes to an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, then merges and is verified on main.](docs/lanes-infographic.png)
+| Tier | What it looks like | Dev lane | Billed to |
+|---|---|---|---|
+| **T3 Complex** | Ambiguous or cross-cutting work; concurrency or state machines; authority, security or money logic; migrations and contracts; unknown-root-cause debugging; live ops; design | **Claude Opus** (`opus-lane`, high effort) | your Claude subscription |
+| **T2 Moderate** | Clear spec, but multi-file or needs design judgment | **Claude Sonnet** (`sonnet-lane`) | your Claude subscription |
+| **T1 Routine** | Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
+| **T0 Mechanical** | Sweeps, status, evidence | haiku or a script | your Claude subscription |
 
-**Escalation:** a task moves up to a Sonnet or Opus lane if a cheap model fails review twice on it, or if the task turns out to be underspecified or riskier than it looked.
+**Reviews:**
+- **OpenAI Codex** (`gpt-5.6-terra`, on your ChatGPT plan) handles routine reviews and re-reviews.
+- **Claude Opus** gives the first review of authority, security, money or migration code.
+- **Orchestration and merges** run on Claude Opus.
+
+**Re-tiering:** a task only ever moves *up*. That happens when a lane reports it's harder or riskier than triaged, or after two failed reviews at the current tier.
+
+![How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek or GLM behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.](docs/lanes-infographic.png)
 
 The quality gates don't change. Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.
 
@@ -39,9 +46,10 @@ bash ~/.claude/skills/lanes/install.sh --smoke    # optional: one tiny task thro
 bash ~/.claude/skills/lanes/install.sh --watchdog # optional (Linux): timer that cleans orphaned agent work
 ```
 
-The installer checks prerequisites and both keys, and tells you exactly what to add if something is missing. It backs up any file it replaces. **Restart Claude Code afterwards** so the `deepseek`, `glm` and `codex` subagents load.
+The installer checks prerequisites and both keys, and tells you exactly what to add if something is missing. It backs up any file it replaces. **Restart Claude Code afterwards** so the `deepseek`, `glm`, `codex`, `opus-lane` and `sonnet-lane` subagents load.
 
 It installs:
+- `~/.claude/agents/{opus-lane,sonnet-lane}.md`: tiered Claude lane coders (Opus at high effort, Sonnet at medium).
 - In `~/.local/bin`: `claude-via`, `claude-deepseek`, `claude-glm`, `model-relay`, `relay-guard` and `codex-review`.
 - `~/.claude/{deepseek,glm}.json`, which hold the base URL, the model and the *name* of the key variable.
 - `~/.claude/agents/{deepseek,glm,codex}.md`.
@@ -77,7 +85,7 @@ Model overrides: `DEEPSEEK_MODEL=deepseek-v4-pro`, `GLM_MODEL=z-ai/glm-5.3`, `CO
 
 ```bash
 rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guard,codex-review}
-rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex}.md
+rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex,opus-lane,sonnet-lane}.md
 systemctl --user disable --now lanes-watchdog.timer 2>/dev/null; rm -rf ~/.claude/skills/lanes
 ```
 
