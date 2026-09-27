@@ -17,5 +17,5 @@ job=$(mktemp -d "$HOME/.local/state/codex-review.XXXXXX"); cat > "$job/checklist
 [ -s "$job/checklist.md" ] || { echo "empty checklist on stdin"; exit 2; }
 pwd > "$job/cwd"; echo "$base" > "$job/base"; echo "${CODEX_MODEL:-gpt-5.6-terra}" > "$job/model"
 { cat "$RULES" 2>/dev/null; printf '\nBase: %s. Diff: run `git diff %s...HEAD` in this repo.\n' "$base" "$base"; cat "$job/checklist.md"; } > "$job/prompt.md"
-setsid nohup bash -c 'timeout 1800 codex exec --skip-git-repo-check -s read-only -C "$(cat "$0/cwd")" -m "$(cat "$0/model")" --output-last-message "$0/out.md" "$(cat "$0/prompt.md")" > "$0/log" 2>&1; echo $? > "$0/rc"' "$job" >/dev/null 2>&1 &
+setsid nohup bash -c 'timeout 1800 codex exec --skip-git-repo-check -s read-only -C "$(cat "$0/cwd")" -m "$(cat "$0/model")" --output-last-message "$0/out.md" "$(cat "$0/prompt.md")" < /dev/null > "$0/log" 2>&1; echo $? > "$0/rc"' "$job" >/dev/null 2>&1 &
 echo "job: $job (codex review of $(pwd) vs $base)"; wait_job "$job"
