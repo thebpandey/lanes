@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>lanes · orchestration harness for Claude Code</title>
-<meta name="description" content="lanes is a Claude Code skill that triages every task by complexity and runs your project in parallel git-worktree lanes: Opus for complex work, Sonnet for moderate, DeepSeek or GLM for routine, Codex for reviews.">
+<meta name="description" content="lanes is a Claude Code skill that triages every task by complexity and runs your project in parallel git-worktree lanes: Opus for complex work, Sonnet for moderate, DeepSeek for routine (GLM for simple, bounded jobs), Codex for reviews.">
 <meta property="og:title" content="lanes: a token-efficient orchestration harness for Claude Code">
 <meta property="og:description" content="The right model for every task. The same gates for every change.">
 <meta property="og:type" content="website">
@@ -315,14 +315,14 @@ footer p{margin:0}
 
     <figure class="info" id="info">
       <img src="lanes-infographic.webp" width="1672" height="941" loading="lazy" decoding="async"
-        alt="How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek or GLM behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.">
+        alt="How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek as the primary coder, with GLM 5.3 Flash for simple, bounded work, behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.">
       <p class="missing">Infographic: lanes-infographic.png (see the step list below for the same flow).</p>
       <figcaption><span>The lanes flow, end to end.</span><a href="lanes-infographic.png">Open full size</a></figcaption>
     </figure>
 
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
-      <li style="--c:var(--review)"><h3>Triage by complexity</h3><p>Every task gets a tier before dispatch, and the tier picks the model from the start: Opus for complex work, Sonnet for moderate work, DeepSeek or GLM for routine work, and Codex for routine reviews. Tasks only ever move up a tier.</p></li>
+      <li style="--c:var(--review)"><h3>Triage by complexity</h3><p>Every task gets a tier before dispatch, and the tier picks the model from the start: Opus for complex work, Sonnet for moderate work, DeepSeek for routine work (GLM for simple, bounded jobs), and Codex for routine reviews. Tasks only ever move up a tier.</p></li>
       <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.</p></li>
     </ul>
 
@@ -354,7 +354,7 @@ footer p{margin:0}
   <div class="wrap">
     <p class="kicker"><b>02</b> Routing</p>
     <h2 id="routing-title">Triage first. The tier picks the model.</h2>
-    <p class="intro">Every task is triaged by complexity before dispatch, so hard problems go straight to Opus and only routine work goes to the cheap models. Each tier bills to an account you already hold. Keys stay in your shell rc; the skill never stores them.</p>
+    <p class="intro">Every task is triaged by complexity before dispatch, so hard problems go straight to Opus and only routine work goes to the cheap models (DeepSeek first, GLM for simple, bounded jobs). Each tier bills to an account you already hold. Keys stay in your shell rc; the skill never stores them.</p>
     <table class="routes" aria-describedby="routes-note">
       <thead><tr><th scope="col">Tier / role</th><th scope="col">Lane</th><th scope="col">Billed to</th></tr></thead>
       <tbody>
@@ -370,7 +370,7 @@ footer p{margin:0}
         </tr>
         <tr class="r-work">
           <th scope="row"><span class="who">T1 Routine</span>Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps</th>
-          <td data-label="Lane"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>) or <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter)</td>
+          <td data-label="Lane"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>, thinking on) as the primary coder; <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter) for simple, bounded work</td>
           <td data-label="Billed to"><span class="pill">your DeepSeek / OpenRouter API keys</span></td>
         </tr>
         <tr class="r-work">
@@ -395,7 +395,7 @@ footer p{margin:0}
         </tr>
       </tbody>
     </table>
-    <p class="routes-note" id="routes-note">Tasks only ever move <b>up</b> a tier: when a lane reports a task is harder or riskier than triaged, or after two failed reviews at the current tier. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
+    <p class="routes-note" id="routes-note">Tasks only ever move <b>up</b> a tier: when a lane reports a task is harder or riskier than triaged, or after two failed reviews at the current tier. GLM's T1 share is tests, docs-with-code, mechanical refactors, huge-context reading, and overflow when DeepSeek already has 2 jobs running. When a T1 review fails, the next fix round switches to the other model before the task moves up a tier. Track first-pass review rates per model and revisit the split after about 10 tasks each. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
     <ul class="gates">
       <li><strong>Review before merge</strong>Every change from any model gets an independent review. Fix rounds loop until CLEAN.</li>
       <li><strong>Workers stay in worktrees</strong>DeepSeek and GLM never run in a checkout holding <code>.env</code> or secrets.</li>

@@ -2,13 +2,13 @@
 
 `lanes` is a Claude Code skill that turns one session into an orchestrator. It audits a project, even one left half-finished, plans the remaining work, and runs it in parallel **lanes**, each lane being a git worktree with one agent working in it.
 
-Every task is **triaged by complexity before dispatch**. The tier picks the model from the start: hard problems go straight to Opus, and only routine work goes to the cheap models.
+Every task is **triaged by complexity before dispatch**. The tier picks the model from the start: hard problems go straight to Opus, and only routine work goes to the cheap models (DeepSeek first, GLM for simple, bounded jobs).
 
 | Tier | What it looks like | Dev lane | Billed to |
 |---|---|---|---|
 | **T3 Complex** | Ambiguous or cross-cutting work; concurrency or state machines; authority, security or money logic; migrations and contracts; unknown-root-cause debugging; live ops; design | **Claude Opus** (`opus-lane`, high effort) | your Claude subscription |
 | **T2 Moderate** | Clear spec, but multi-file or needs design judgment | **Claude Sonnet** (`sonnet-lane`) | your Claude subscription |
-| **T1 Routine** | Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps | **DeepSeek** (`deepseek-flash`) or **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) | your DeepSeek / OpenRouter API keys |
+| **T1 Routine** | Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps | **DeepSeek** (`deepseek-flash`, thinking on) as the primary coder; **GLM 5.3 Flash** (`z-ai/glm-5.3-flash` via OpenRouter) for simple, bounded work | your DeepSeek / OpenRouter API keys |
 | **T0 Mechanical** | Sweeps, status, evidence | haiku or a script | your Claude subscription |
 
 **Reviews:**
@@ -16,9 +16,11 @@ Every task is **triaged by complexity before dispatch**. The tier picks the mode
 - **Claude Opus** gives the first review of authority, security, money or migration code.
 - **Orchestration and merges** run on Claude Opus.
 
+**T1 split:** DeepSeek is the primary T1 coder. GLM 5.3 Flash takes only simple, bounded work (tests, docs-with-code, mechanical refactors, huge-context reading) and overflow when DeepSeek already has 2 jobs running. When a T1 review fails, the next fix round switches to the other model before the task moves up a tier. Track first-pass review rates per model and revisit the split after about 10 tasks each. Why: vendor-reported DeepSWE is 74.2 for DeepSeek-V4.1-Flash (Terminal-Bench 30) against 63.4 for GLM-5.3-Flash. DeepSeek bills thinking tokens as output ($0.60/M off-peak, $1.20/M peak), so a typical lane job costs about $0.04–0.19 off-peak; GLM's thinking cannot be disabled.
+
 **Re-tiering:** a task only ever moves *up*. That happens when a lane reports it's harder or riskier than triaged, or after two failed reviews at the current tier.
 
-![How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek or GLM behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.](docs/lanes-infographic.png)
+![How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek as the primary coder, with GLM 5.3 Flash for simple, bounded work, behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.](docs/lanes-infographic.png)
 
 The quality gates don't change. Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.
 

@@ -1,6 +1,6 @@
 ---
 name: glm
-description: Hands a well-scoped coding task (implement, refactor, write tests, fix a bug) to GLM 5.3 Flash via OpenRouter (billed to the owner's OpenRouter key, not the Claude subscription). GLM works in the named worktree with file tools and full shell access; long tasks are supported. Give it one self-contained task naming the worktree path, files, and acceptance checks. Never give it secrets, credentials, CRM exports, or contact data.
+description: Hands a well-scoped coding task (implement, refactor, write tests, fix a bug) to GLM 5.3 Flash via OpenRouter (billed to the owner's OpenRouter key, not the Claude subscription). Use it only for simple, bounded work (tests, docs-with-code, mechanical refactors, huge-context reading) or as overflow when DeepSeek already has 2 jobs running; DeepSeek is the primary T1 coder. GLM works in the named worktree with file tools and full shell access; long tasks are supported. Give it one self-contained task naming the worktree path, files, and acceptance checks. Never give it secrets, credentials, CRM exports, or contact data.
 model: haiku
 tools: Bash
 color: green

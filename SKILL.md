@@ -1,6 +1,6 @@
 ---
 name: lanes
-description: Token-efficient multi-lane orchestration for Claude Code. Use it to start or resume work on an existing (possibly unfinished) project, run parallel worktree lanes, triage each task by complexity (Opus for complex work from the start, Sonnet for moderate, DeepSeek/GLM for routine) and route reviews to Codex, and report status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
+description: Token-efficient multi-lane orchestration for Claude Code. Use it to start or resume work on an existing (possibly unfinished) project, run parallel worktree lanes, triage each task by complexity (Opus for complex work from the start, Sonnet for moderate, DeepSeek for routine with GLM for simple bounded work) and route reviews to Codex, and report status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
 ---
 
 # Lanes: orchestration harness
@@ -31,9 +31,10 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 |---|---|---|---|
 | **T3 Complex** (high reasoning) | Ambiguous or underspecified; cross-cutting or architectural; concurrency, races, locks or state machines; authority, security, money or privacy logic; schema migrations or shared contracts; debugging an unknown root cause; live ops or deploys; design and UX; hard to reverse | **`opus-lane`** (Opus, high effort) | Opus for authority, security, money or migrations; otherwise Codex |
 | **T2 Moderate** | Clear spec, but spans several files or packages or needs design judgment; unfamiliar area of the codebase; moderate blast radius | **`sonnet-lane`** (Sonnet) | Codex |
-| **T1 Routine** | Well-specified, local change with clear acceptance tests: small features, fix rounds from a review, refactors, test gaps, CI or scripts, docs-with-code | **`deepseek`** or **`glm`** (or `model-relay`) | Codex |
+| **T1 Routine** | Well-specified, local change with clear acceptance tests: small features, fix rounds from a review, refactors, test gaps, CI or scripts, docs-with-code | **`deepseek`** (primary); **`glm`** only for simple, bounded work (or `model-relay`) | Codex |
 | **T0 Mechanical** | Sweeps, renames, status or evidence gathering | haiku or a script | none, or spot-check |
 
+- **T1 model choice:** DeepSeek (`deepseek-flash`, thinking mode on, which is DeepSeek's default) is the primary T1 coder. GLM 5.3 Flash takes only simple, bounded work: tests, docs-with-code, mechanical refactors, reading a huge context, and overflow when DeepSeek already has 2 jobs running. When a T1 review fails, the next fix round switches to the other model before the task moves up to T2 or T3. Record each model's first-pass review result in the project's memory, and revisit the split after about 10 tasks each. Why: vendor-reported DeepSWE is 74.2 for DeepSeek-V4.1-Flash (Terminal-Bench 30) against 63.4 for GLM-5.3-Flash. DeepSeek thinking tokens bill as output ($0.60/M off-peak, $1.20/M peak), so a typical DeepSeek lane job costs about $0.04–0.19 off-peak. GLM's thinking cannot be disabled.
 - **Re-tier upward:** re-tier as soon as a lane reports the task is harder or riskier than triaged, or after two failed reviews at the current tier. Never downgrade a task mid-flight.
 - **Fix rounds:** they usually stay with the author's tier. A fix round for T3 code may go to T1 when the review findings are precise and local.
 - **Review before merge:** every change gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
@@ -47,8 +48,8 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 - **Registry:** add or replace the lane's row in `$S/lanes.tsv`: lane, agent, task, worktree, relay job.
 - **Brief:** start from `$K/rules/brief-template.md` and keep it short. It must name the worktree path, the task id, the acceptance checks and the tests. For Claude agents, reference `$K/rules/LANE_RULES.md`. For DeepSeek and GLM, paste its contents, since they cannot see this skill.
 - **T3 and T2 lanes:** `Agent` with `subagent_type: opus-lane` (T3) or `sonnet-lane` (T2). Until Claude Code restarts after install, use a plain `Agent` with model opus or sonnet.
-- **T1 lanes (DeepSeek or GLM), preferred from the orchestrator:** Bash with `run_in_background: true`:
-  `cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < $S/lanes/<lane>/brief.md` (or `glm`). It costs no Claude tokens, and you are notified on completion. If the output says STILL RUNNING, run `model-relay --wait <job>`.
+- **T1 lanes (DeepSeek, or GLM for simple bounded work), preferred from the orchestrator:** Bash with `run_in_background: true`:
+  `cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < $S/lanes/<lane>/brief.md` (or `glm`, per the T1 model choice in §2). It costs no Claude tokens, and you are notified on completion. If the output says STILL RUNNING, run `model-relay --wait <job>`.
 - **Codex review, preferred from the orchestrator:** Bash with `run_in_background: true`:
   `cd <worktree> && RELAY_WAIT_S=6000 codex-review <base-ref> < checklist.md`. The checklist is 3–10 task-specific lines, authority first.
 - **Subagents** (`deepseek`, `glm`, `codex`) are guarded haiku relays. Use them when a Task-tool call is more convenient. Give them the worktree path and the full brief or checklist.

@@ -1,6 +1,6 @@
 ---
 name: deepseek
-description: Hands a well-scoped coding task (implement, refactor, write tests, fix a bug) to DeepSeek Flash (billed to the owner's DeepSeek API account, not the Claude subscription). DeepSeek works in the named worktree with file tools and full shell access; long tasks are supported. Give it one self-contained task naming the worktree path, files, and acceptance checks. Never give it secrets, credentials, CRM exports, or contact data.
+description: Hands a well-scoped coding task (implement, refactor, write tests, fix a bug) to DeepSeek Flash (billed to the owner's DeepSeek API account, not the Claude subscription). DeepSeek is the primary coder for T1 routine tasks. DeepSeek works in the named worktree with file tools and full shell access; long tasks are supported. Give it one self-contained task naming the worktree path, files, and acceptance checks. Never give it secrets, credentials, CRM exports, or contact data.
 model: haiku
 tools: Bash
 color: cyan
