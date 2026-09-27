@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# model-relay <deepseek|glm>            task on stdin; runs the worker in the CURRENT directory, detached
+# model-relay --wait <job-dir>          keep waiting for a job that was still running
+# Waits up to ~9 minutes per call so it fits one Bash tool call; long jobs keep running and are resumed with --wait.
+set -uo pipefail
+WAIT_S=${RELAY_WAIT_S:-540}
+summary() {
+  local j=$1 rc; rc=$(cat "$j/rc")
+  echo "exit=$rc (124 = 90-minute hard limit hit; work may be partial)"
+  python3 - "$j/out.json" "$(cat "$j/engine")" <<'PY' || { echo "no parseable output; stderr tail:"; tail -20 "$j/err.log"; }
+import json, sys
+d = json.load(open(sys.argv[1])); eng = sys.argv[2]
+if True:
+    print("model:", list(d.get("modelUsage", {})), "| is_error:", d.get("is_error"), "| turns:", d.get("num_turns"))
+    print("denied tools:", [p.get("tool_name") for p in d.get("permission_denials", [])])
+    print("RESULT:\n" + str(d.get("result")))
+PY
+  local wd; wd=$(cat "$j/cwd")
+  git -C "$wd" rev-parse --is-inside-work-tree >/dev/null 2>&1 && { echo "git status --short ($wd):"; git -C "$wd" status --short | head -40; echo "recent commits:"; git -C "$wd" log --oneline -5; }
+}
+wait_job() {
+  local j=$1 t=0
+  while [ ! -f "$j/rc" ] && [ $t -lt "$WAIT_S" ]; do sleep 5; t=$((t+5)); done
+  if [ -f "$j/rc" ]; then summary "$j"; else echo "STILL RUNNING after ${WAIT_S}s. Continue with exactly: model-relay --wait $j"; fi
+}
+if [ "${1:-}" = "--wait" ]; then [ -d "${2:-}" ] || { echo "no such job: ${2:-}"; exit 2; }; wait_job "$2"; exit 0; fi
+engine=${1:-}; [ -n "$engine" ] && [ -r "$HOME/.claude/$engine.json" ] || { echo "usage: model-relay <provider> < task   (provider = a ~/.claude/<provider>.json, e.g. deepseek, glm)"; exit 2; }
+job=$(mktemp -d "${HOME}/.local/state/model-relay.XXXXXX"); cat > "$job/task.md"
+[ -s "$job/task.md" ] || { echo "empty task on stdin"; exit 2; }
+echo "$engine" > "$job/engine"; pwd > "$job/cwd"
+cmd=(claude-via "$engine" -p --output-format json --permission-mode bypassPermissions --strict-mcp-config --disallowedTools "Read(./.env*)" "Read(**/.env*)")
+setsid nohup bash -c 'timeout 5400 "$@" < "$0/task.md" > "$0/out.json" 2> "$0/err.log"; echo $? > "$0/rc"' "$job" "${cmd[@]}" >/dev/null 2>&1 &
+echo "job: $job (engine=$engine, dir=$(pwd))"
+wait_job "$job"

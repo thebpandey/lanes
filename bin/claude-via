@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# claude-via <provider> [claude args...] — Claude Code on a third-party Anthropic-compatible API.
+# Routing from ~/.claude/<provider>.json: api.baseUrl, api.defaultModel, api.authTokenEnv (env var NAME; no key stored).
+# Model override: <PROVIDER>_MODEL (e.g. DEEPSEEK_MODEL, GLM_MODEL).
+set -euo pipefail
+P=${1:?usage: claude-via <provider> [args]}; shift
+CONFIG="$HOME/.claude/$P.json"; [ -r "$CONFIG" ] || { echo "claude-via: cannot read $CONFIG" >&2; exit 2; }
+IFS=$'\t' read -r BASE_URL DEFAULT_MODEL TOKEN_ENV < <(python3 -c '
+import json, sys; a = json.load(open(sys.argv[1]))["api"]
+print(a["baseUrl"], a["defaultModel"], a["authTokenEnv"], sep="\t")' "$CONFIG")
+TOKEN="${!TOKEN_ENV:-}"
+[ -n "$TOKEN" ] || TOKEN="$(bash -ic "printf %s \"\$$TOKEN_ENV\"" 2>/dev/null || true)"
+[ -n "$TOKEN" ] || { echo "claude-via: $TOKEN_ENV is not set" >&2; exit 2; }
+OV="${P^^}_MODEL"; MODEL="${!OV:-$DEFAULT_MODEL}"
+unset ANTHROPIC_API_KEY
+export ANTHROPIC_BASE_URL="$BASE_URL" ANTHROPIC_AUTH_TOKEN="$TOKEN" ANTHROPIC_MODEL="$MODEL"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL" ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL" ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL" ANTHROPIC_DEFAULT_FABLE_MODEL="$MODEL"
+export CLAUDE_CODE_SUBAGENT_MODEL="$MODEL" CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+exec claude "$@"

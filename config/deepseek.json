@@ -1,0 +1,7 @@
+{
+  "api": {
+    "baseUrl": "https://api.deepseek.com/anthropic",
+    "authTokenEnv": "DEEPSEEK_API_KEY",
+    "defaultModel": "deepseek-flash"
+  }
+}

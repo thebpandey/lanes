@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Claude Code on GLM via OpenRouter (see claude-via).
+exec claude-via glm "$@"

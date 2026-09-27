@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Kept for compatibility: Claude Code on DeepSeek (see claude-via).
+exec claude-via deepseek "$@"
