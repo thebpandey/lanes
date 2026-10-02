@@ -7,6 +7,6 @@ lanes_repo() {
 }
 lanes_state() { # ~/.local/state/lanes/<repo-name>-<8 hex of repo path>
   local r; r=$(lanes_repo) || return 1
-  local d="$HOME/.local/state/lanes/$(basename "$r")-$(printf '%s' "$r" | sha256sum | cut -c1-8)"
+  local d="$HOME/.local/state/lanes/$(basename "$r")-$(printf '%s' "$r" | { sha256sum 2>/dev/null || shasum -a 256; } | cut -c1-8)"
   mkdir -p "$d"; printf '%s\n' "$d"
 }

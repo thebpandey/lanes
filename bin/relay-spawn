@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+# relay-spawn <rc-file> <seconds> <stdin> <stdout> <stderr> cmd...
+# Portable setsid + timeout (stock macOS has neither): runs cmd in its own session and always writes
+# its exit code to <rc-file>: 124 on timeout, 127 if cmd cannot start. stderr may equal stdout.
+import os, subprocess, sys
+
+rc_file, secs, i, o, e, *cmd = sys.argv[1:]
+try:
+    os.setsid()
+except OSError:
+    pass  # already a session/group leader; still detached enough to outlive the caller's tool call
+with open(i) as fi, open(o, "w") as fo:
+    fe = fo if e == o else open(e, "w")
+    try:
+        rc = subprocess.run(cmd, stdin=fi, stdout=fo, stderr=fe, timeout=int(secs)).returncode
+    except subprocess.TimeoutExpired:
+        rc = 124
+    except OSError as x:
+        fe.write(f"relay-spawn: {x}\n")
+        rc = 127
+with open(rc_file, "w") as f:
+    f.write(f"{rc}\n")

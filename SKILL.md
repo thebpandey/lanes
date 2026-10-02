@@ -9,7 +9,7 @@ metadata:
 
 You are the orchestrator. You plan, dispatch, review gates, integrate and report. Do all implementation work in assigned worktrees. Use the main worktree only for orchestration, integration, planning, and writing session-detail logs before context compaction. Workers own only their assigned files in their assigned worktrees.
 
-Paths: `K=~/.claude/skills/lanes`. The per-project state dir comes from `S=$(. $K/lane/lane-env.sh; lanes_state)`, which is `~/.local/state/lanes/<repo>-<hash>/`. It holds `lanes.tsv` (the lane registry) and `lanes/<lane>/` (briefs, reports, reviews).
+Paths: `K=~/.claude/skills/lanes`. The per-project state dir comes from `S=$(. $K/lane/lane-env.sh; lanes_state)`, which is `~/.local/state/lanes/<repo>-<hash>/`. It holds `lanes.tsv` (the lane registry) and `lanes/<lane>/` (briefs, reports, reviews). In Codex, also read [CODEX.md](CODEX.md).
 
 ## 0. Setup check (first use on a machine, or when anything fails)
 
@@ -40,7 +40,7 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 - **Re-tier upward:** re-tier as soon as a lane reports the task is harder or riskier than triaged, or after two failed reviews at the current tier. Never downgrade a task mid-flight.
 - **Fix rounds:** they usually stay with the author's tier. A fix round for T3 code may go to T1 when the review findings are precise and local.
 - **Review before merge:** every change gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
-- **DeepSeek and GLM run only in worktrees,** never in a checkout holding `.env` or secrets. Never send external models secrets, credentials, customer or contact data, or exports.
+- **DeepSeek and GLM run only in linked worktrees with no `.env` files;** `model-relay` refuses anything else. Never send external models secrets, credentials, customer or contact data, or exports.
 - **If Codex is not installed,** use a Sonnet reviewer following `$K/rules/REVIEW_RULES.md`.
 - **Tell the user the tier:** in status summaries, show each task's tier and assigned model.
 
@@ -75,13 +75,15 @@ Copy this checklist into the lane's tracker note and tick items as they complete
 - [ ] 10. Refill from the ready queue
 ```
 
-- **Step 3 or 4 fails:** return to step 2 in the same worktree with the findings.
-- **Step 6 fails:** `git revert --no-edit <integration-commit>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
-- **Step 8:** run `git worktree remove <path>` (never `--force`), then `git branch -d <branch>`. If either refuses (dirty worktree or unmerged branch), stop and report it; use `git branch -D` only when the tracker records that the branch's exact changes are already integrated.
-- **Step 9:** only with push authorization. The scan must exit 0 first; any non-zero exit blocks the push and goes to the user:
+- **Step 3 or 4 fails:** return to step 2 in the same worktree with the findings. After the second failed review, re-tier (§2) before returning.
+- **Step 5:** `git merge --no-ff --no-edit <branch>` on the main worktree; record the merge SHA in the tracker. On a conflict, `git merge --abort`, then return to step 2 to rebase the lane onto the main branch.
+- **Step 6 fails:** `git revert --no-edit -m 1 <merge-sha>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
+- **Step 8:** run `git worktree remove <path>` (never `--force`), then `git branch -d <branch>`. If either refuses (dirty worktree or unmerged branch), stop and report it; use `git branch -D` only when `git cherry <main-branch> <branch>` prints no `+` lines (every commit already integrated).
+- **Step 9:** only with push authorization. The scan must exit 0 first (1 = leaks, 2 = scanner or range problem); any non-zero exit blocks the push and goes to the user:
 
   ```sh
-  bash $K/lane/secret-scan.sh "$(git merge-base HEAD origin/<branch>)" HEAD && git push origin <branch>
+  base=$(git merge-base HEAD origin/<branch> 2>/dev/null || git merge-base HEAD origin/<main-branch>)
+  bash $K/lane/secret-scan.sh "$base" HEAD && git push origin <branch>
   ```
 
   Never pass `--force`; a rejected non-fast-forward push is reported, not overridden.
@@ -104,7 +106,7 @@ On the main worktree, do only orchestration, planning, and integration. Stage ex
 
 ## 7. Pause / resume
 
-- **Pause:** stop at safe points. For each lane, write a tracker note "PAUSED <date time>" with worktree, SHA, uncommitted work, next step. Remove leftover test containers.
+- **Pause:** stop at safe points. For each lane, write a tracker note "PAUSED <date time>" with worktree, SHA, uncommitted work, next step. Remove its test containers: `docker ps -aq --filter label=lanes.lane=<lane> | xargs -r docker rm -f`.
 - **Resume:** subagents do not survive a session restart. Dispatch new ones into the SAME worktrees, telling them to continue the existing work. Reattach relay jobs with `model-relay --wait` or `codex-review --wait`.
 
 Ask the user before anything outward-facing or hard to undo: pushes (unless pre-approved), deploys, external writes or sends, deleting branches with unmerged work, history rewrites. Ask one question per message.

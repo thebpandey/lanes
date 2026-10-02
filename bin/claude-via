@@ -11,7 +11,7 @@ print(a["baseUrl"], a["defaultModel"], a["authTokenEnv"], sep="\t")' "$CONFIG")
 TOKEN="${!TOKEN_ENV:-}"
 [ -n "$TOKEN" ] || TOKEN="$(bash -ic "printf %s \"\$$TOKEN_ENV\"" 2>/dev/null || true)"
 [ -n "$TOKEN" ] || { echo "claude-via: $TOKEN_ENV is not set" >&2; exit 2; }
-OV="${P^^}_MODEL"; MODEL="${!OV:-$DEFAULT_MODEL}"
+OV="$(printf %s "$P" | tr '[:lower:]' '[:upper:]')_MODEL"; MODEL="${!OV:-$DEFAULT_MODEL}"
 unset ANTHROPIC_API_KEY
 export ANTHROPIC_BASE_URL="$BASE_URL" ANTHROPIC_AUTH_TOKEN="$TOKEN" ANTHROPIC_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL" ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL" ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL" ANTHROPIC_DEFAULT_FABLE_MODEL="$MODEL"

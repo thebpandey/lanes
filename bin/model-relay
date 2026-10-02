@@ -50,11 +50,15 @@ wait_job() {
   if [ -f "$j/rc" ]; then summary "$j"; else echo "STILL RUNNING after ${WAIT_S}s. Continue with exactly: model-relay --wait $j"; fi
 }
 if [ "${1:-}" = "--wait" ]; then [ -d "${2:-}" ] || { echo "no such job: ${2:-}"; exit 2; }; wait_job "$2"; exit 0; fi
+# External models never run in the main checkout or next to .env files (SKILL.md §2).
+gd=$(git rev-parse --path-format=absolute --git-dir 2>/dev/null); gc=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+[ -n "$gd" ] && [ "$gd" != "$gc" ] || { echo "refused: run only inside a linked lane worktree ($(pwd))"; exit 2; }
+find . -maxdepth 4 -name '.env*' ! -name '.env.example' ! -path '*/node_modules/*' 2>/dev/null | grep -q . && { echo "refused: .env present in $(pwd); remove it from the worktree first"; exit 2; }
 engine=${1:-}; [ -n "$engine" ] && [ -r "$HOME/.claude/$engine.json" ] || { echo "usage: model-relay <provider> < task   (provider = a ~/.claude/<provider>.json, e.g. deepseek, glm)"; exit 2; }
 job=$(mktemp -d "${HOME}/.local/state/model-relay.XXXXXX"); cat > "$job/task.md"
 [ -s "$job/task.md" ] || { echo "empty task on stdin"; exit 2; }
 echo "$engine" > "$job/engine"; pwd > "$job/cwd"
 cmd=(claude-via "$engine" -p --output-format json --permission-mode bypassPermissions --strict-mcp-config --disallowedTools "Read(./.env*)" "Read(**/.env*)")
-setsid nohup bash -c 'timeout 5400 "$@" < "$0/task.md" > "$0/out.json" 2> "$0/err.log"; echo $? > "$0/rc"' "$job" "${cmd[@]}" >/dev/null 2>&1 &
+nohup relay-spawn "$job/rc" 5400 "$job/task.md" "$job/out.json" "$job/err.log" "${cmd[@]}" >/dev/null 2>&1 &
 echo "job: $job (engine=$engine, dir=$(pwd))"
 wait_job "$job"

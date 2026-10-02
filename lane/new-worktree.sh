@@ -8,7 +8,7 @@ b=${1:?usage: new-worktree.sh <branch> [base]}; base=${2:-$(git -C "$R" symbolic
 w="$R/.claude/worktrees/$b"; git -C "$R" worktree add -q -b "$b" "$w" "$base"
 if [ -d "$R/node_modules" ] && [ -f "$R/package.json" ]; then
   mkdir -p "$w/node_modules"
-  mapfile -t pkgs < <(cd "$w" && for f in $(python3 - <<'PY'
+  pkgs=(); while IFS= read -r row; do pkgs+=("$row"); done < <(cd "$w" && for f in $(python3 - <<'PY'
 import json, glob
 ws = json.load(open("package.json")).get("workspaces", [])
 ws = ws.get("packages", []) if isinstance(ws, dict) else ws

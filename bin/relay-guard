@@ -5,12 +5,12 @@ import json, re, sys
 engine = sys.argv[1]
 cmd = (json.load(sys.stdin).get("tool_input") or {}).get("command", "")
 if engine == "codex":
-    ok = re.match(r"^\s*(cd\s+[^;&|`$()]+\s*&&\s*)?codex-review\s+([\w./@~^-]+\s+<<\s*'?(\w+)'?\n.*\n\3\s*$|--wait\s+\S+\s*$)", cmd, re.S)
+    ok = re.match(r"^\s*(cd\s+[^;&|`$()<>\n]+\s*&&\s*)?codex-review\s+([\w./@~^-]+\s+<<\s*'?(\w+)'?\n.*\n\3\s*$|--wait\s+\S+\s*$)", cmd, re.S)
     if not ok:
         print("Blocked: you are a review relay. Your only allowed command is `cd <worktree> && codex-review <base-ref> <<'CHECKLIST' ... CHECKLIST` or `codex-review --wait <job>`. Do not review the code yourself.", file=sys.stderr)
         sys.exit(2)
     sys.exit(0)
-ok = re.match(r"^\s*(cd\s+[^;&|`$()]+\s*&&\s*)?model-relay\s+(" + engine + r"\s+<<\s*'?(\w+)'?\n.*\n\3\s*$|--wait\s+\S+\s*$)", cmd, re.S)
+ok = re.match(r"^\s*(cd\s+[^;&|`$()<>\n]+\s*&&\s*)?model-relay\s+(" + engine + r"\s+<<\s*'?(\w+)'?\n.*\n\3\s*$|--wait\s+\S+\s*$)", cmd, re.S)
 if not ok:
     print(f"Blocked: you are a relay. Your only allowed command is `cd <dir> && model-relay {engine} <<'TASK' ... TASK` (task word for word) or `model-relay --wait <job>`. Do not do the task yourself.", file=sys.stderr)
     sys.exit(2)

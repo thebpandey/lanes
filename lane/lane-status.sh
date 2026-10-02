@@ -14,12 +14,12 @@ grep -v '^#' "$S/lanes.tsv" | while IFS=$'\t' read -r lane agent task wt job; do
     c=$(git -C "$p" rev-list --count "$base"..HEAD 2>/dev/null || echo ?)
     files=$(git -C "$p" status --porcelain | grep -v node_modules | awk '{print $2}')
     wip=$(printf '%s' "$files" | grep -c . || true)
-    t=$( (git -C "$p" log -1 --format=%ct; for f in $files; do stat -c %Y "$p/$f" 2>/dev/null; done) | sort -n | tail -1)
+    t=$( (git -C "$p" log -1 --format=%ct; for f in $files; do stat -c %Y "$p/$f" 2>/dev/null || stat -f %m "$p/$f" 2>/dev/null; done) | sort -n | tail -1)
     [ -n "$t" ] && last="$(( (now - t) / 60 ))m ago"
     pgrep -af "vitest|jest|pytest|tsc -b|eslint|playwright|go test|cargo test" | grep -q -- "$p" && run="tests "
   fi
   if [ "${job:--}" != - ] && [ -d "$job" ]; then
-    if [ -f "$job/rc" ]; then run="${run}relay done rc=$(cat "$job/rc")"; else run="${run}relay running $(( (now - $(stat -c %Y "$job/task.md")) / 60 ))m"; fi
+    if [ -f "$job/rc" ]; then run="${run}relay done rc=$(cat "$job/rc")"; else run="${run}relay running $(( (now - $(stat -c %Y "$job/task.md" 2>/dev/null || stat -f %m "$job/task.md" 2>/dev/null)) / 60 ))m"; fi
   fi
   printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$lane" "$agent" "$task" "$c" "$wip" "$last" "${run:--}"
 done

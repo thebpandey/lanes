@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh [--check] [--watchdog] [--smoke]
 # Installs the lanes harness for Claude Code on this machine (re-runnable; replaced files are backed up as .bak.<ts>):
-#   ~/.local/bin: claude-via, claude-deepseek, claude-glm, model-relay, relay-guard, codex-review
+#   ~/.local/bin: claude-via, claude-deepseek, claude-glm, model-relay, relay-guard, relay-spawn, codex-review
 #   ~/.claude/{deepseek,glm}.json  (routing only: base URL, model, NAME of the key variable — never the key)
 #   ~/.claude/agents/{deepseek,glm,codex}.md (guarded relays) + {opus-lane,sonnet-lane}.md (tiered Claude lane coders)
 # --check    only report what is installed / missing (no writes)
@@ -19,7 +19,7 @@ put() { # put <src> <dest> <mode>  — atomic replace (never edit a running scri
 }
 if [ $CHECK = 0 ]; then
   mkdir -p "$HOME/.local/bin" "$HOME/.local/state" "$HOME/.claude/agents"
-  for f in claude-via claude-deepseek claude-glm model-relay relay-guard codex-review; do put "$K/bin/$f" "$HOME/.local/bin/$f" 755; done
+  for f in claude-via claude-deepseek claude-glm model-relay relay-guard relay-spawn codex-review; do put "$K/bin/$f" "$HOME/.local/bin/$f" 755; done
   for p in deepseek glm; do put "$K/config/$p.json" "$HOME/.claude/$p.json" 600; done
   for a in deepseek glm codex opus-lane sonnet-lane; do put "$K/agents/$a.md" "$HOME/.claude/agents/$a.md" 644; done
   chmod +x "$K"/lane/*.sh
@@ -44,7 +44,7 @@ if [ $WATCHDOG = 1 ] && [ $CHECK = 0 ]; then
   else echo "  no systemd: run $K/lane/lane-watchdog.sh clean periodically (e.g. cron)"; fi
 fi
 if [ $SMOKE = 1 ] && [ $missing = 0 ]; then
-  t=$(mktemp -d); cd "$t"
+  t=$(mktemp -d); git -C "$t" init -q && git -C "$t" commit -q --allow-empty -m smoke && git -C "$t" worktree add -q -b smoke "$t/wt" && cd "$t/wt"
   for p in deepseek glm; do echo "--- smoke: $p"; echo 'Create s.py with sq(x) returning x*x, run python3 -c "from s import sq; print(sq(9))", and report the printed output.' | RELAY_WAIT_S=300 "$HOME/.local/bin/model-relay" "$p" | sed -n '2,6p'; done
   cd - >/dev/null; rm -rf "$t"
 fi

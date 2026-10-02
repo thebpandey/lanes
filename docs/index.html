@@ -435,7 +435,7 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
         <p class="note"><b>Then restart Claude Code</b><span>so the <code>opus-lane</code>, <code>sonnet-lane</code>, <code>deepseek</code>, <code>glm</code> and <code>codex</code> subagents load. Until then, the direct commands work without a restart.</span></p>
         <h3>What it installs</h3>
         <ul class="installs">
-          <li>In <code>~/.local/bin</code>: <code>claude-via</code>, <code>claude-deepseek</code>, <code>claude-glm</code>, <code>model-relay</code>, <code>relay-guard</code> and <code>codex-review</code>.</li>
+          <li>In <code>~/.local/bin</code>: <code>claude-via</code>, <code>claude-deepseek</code>, <code>claude-glm</code>, <code>model-relay</code>, <code>relay-guard</code>, <code>relay-spawn</code> and <code>codex-review</code>.</li>
           <li><code>~/.claude/{deepseek,glm}.json</code>, which hold the base URL, the model and the <em>name</em> of the key variable.</li>
           <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: Opus lane at medium effort by default, with high for legal meaning, security, difficult defects and final acceptance; Sonnet handles delegated moderate coding. The other agents are guarded relays.</li>
         </ul>
@@ -498,7 +498,7 @@ cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 codex-review main &lt; checklis
     <h2 id="uninstall-title">Three lines to remove it all.</h2>
     <div class="code">
       <div class="code-head"><span>bash · uninstall</span><button class="copy" type="button" aria-label="Copy uninstall commands">Copy</button></div>
-<pre><code>rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guard,codex-review}
+<pre><code>rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guard,relay-spawn,codex-review}
 rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex,opus-lane,sonnet-lane}.md
 systemctl --user disable --now lanes-watchdog.timer 2&gt;/dev/null; rm -rf ~/.claude/skills/lanes</code></pre>
     </div>
