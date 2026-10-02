@@ -10,10 +10,36 @@ summary() {
   python3 - "$j/out.json" "$(cat "$j/engine")" <<'PY' || { echo "no parseable output; stderr tail:"; tail -20 "$j/err.log"; }
 import json, sys
 d = json.load(open(sys.argv[1])); eng = sys.argv[2]
-if True:
-    print("model:", list(d.get("modelUsage", {})), "| is_error:", d.get("is_error"), "| turns:", d.get("num_turns"))
-    print("denied tools:", [p.get("tool_name") for p in d.get("permission_denials", [])])
-    print("RESULT:\n" + str(d.get("result")))
+models = d.get("modelUsage") or {}
+usage = d.get("usage") or {}
+def value(*keys):
+    for key in keys:
+        if isinstance(usage.get(key), (int, float)):
+            return usage[key]
+    return None
+def total(*keys):
+    values = [m.get(k) for m in models.values() for k in keys]
+    values = [v for v in values if isinstance(v, (int, float))]
+    return sum(values) if values else None
+def show(v):
+    return v if v is not None else "n/a"
+fresh = value("input_tokens", "inputTokens")
+if fresh is None:
+    fresh = total("inputTokens")
+cached = value("cache_read_input_tokens", "cacheReadInputTokens")
+created = value("cache_creation_input_tokens", "cacheCreationInputTokens")
+if cached is None:
+    cached = total("cacheReadInputTokens")
+if created is None:
+    created = total("cacheCreationInputTokens")
+cached = (cached or 0) + (created or 0) if cached is not None or created is not None else None
+output = value("output_tokens", "outputTokens")
+if output is None:
+    output = total("outputTokens")
+print("model:", list(models), "| is_error:", d.get("is_error"), "| turns:", d.get("num_turns"))
+print("usage: input_tokens=%s cached_input_tokens=%s output_tokens=%s" % (show(fresh), show(cached), show(output)))
+print("denied tools:", [p.get("tool_name") for p in d.get("permission_denials", [])])
+print("RESULT:\n" + str(d.get("result")))
 PY
   local wd; wd=$(cat "$j/cwd")
   git -C "$wd" rev-parse --is-inside-work-tree >/dev/null 2>&1 && { echo "git status --short ($wd):"; git -C "$wd" status --short | head -40; echo "recent commits:"; git -C "$wd" log --oneline -5; }

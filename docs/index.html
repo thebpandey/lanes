@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lanes · orchestration harness for Claude Code</title>
-<meta name="description" content="lanes is a Claude Code skill that triages every task by complexity and runs your project in parallel git-worktree lanes: Opus for complex work, Sonnet for moderate, DeepSeek for routine (GLM for simple, bounded jobs), Codex for reviews.">
-<meta property="og:title" content="lanes: a token-efficient orchestration harness for Claude Code">
-<meta property="og:description" content="The right model for every task. The same gates for every change.">
+<title>lanes v0.1.0 · worktree orchestration for Claude Code and Codex</title>
+<meta name="description" content="lanes v0.1.0 coordinates bounded software tasks in Git worktrees. Codex Sol and Claude Opus coordinate at medium effort; simple tasks use DeepSeek or GLM, with compact evidence and independent review.">
+<meta property="og:title" content="lanes v0.1.0: worktree orchestration for Claude Code and Codex">
+<meta property="og:description" content="Short worker briefs, isolated worktrees, completion events, compact evidence, and independent review.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thebpandey.github.io/lanes/">
-<meta property="og:image" content="https://thebpandey.github.io/lanes/lanes-infographic.png">
+<meta property="og:image" content="https://thebpandey.github.io/lanes/lanes-workflow-v0.1.0.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317150f'/%3E%3Cpath d='M7 10h12M7 16h12M7 22h12' stroke='%234fbfb6' stroke-width='2.4' stroke-linecap='round' stroke-dasharray='4 3'/%3E%3Crect x='21' y='7' width='3.4' height='18' rx='1.2' fill='%23f08a4b'/%3E%3C/svg%3E">
@@ -258,10 +258,10 @@ footer p{margin:0}
 <section class="hero" id="top" aria-labelledby="hero-title">
   <div class="wrap">
     <div>
-      <p class="eyebrow"><span>Claude Code skill</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
+      <p class="eyebrow"><span>Claude Code + Codex</span><span>Skill v0.1.0</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
       <h1 id="hero-title">lanes</h1>
       <p class="pitch"><span class="w">The right model for every task.</span> <span class="g">The same gates for every change.</span></p>
-      <p class="lede">A token-efficient orchestration harness that turns one Claude Code session into an orchestrator. It audits a project, even one left half-finished, plans the remaining work, and runs it in parallel lanes: each lane is a git worktree with one agent working in it.</p>
+      <p class="lede">A multi-model orchestration skill for parallel software work. The orchestrator plans and reviews; each worker receives a short, complete task in its own Git worktree. The main worktree handles orchestration, planning and integration.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="https://github.com/thebpandey/lanes">
           <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -311,32 +311,37 @@ footer p{margin:0}
   <div class="wrap">
     <p class="kicker"><b>01</b> How it works</p>
     <h2 id="how-title">One orchestrator. Many lanes. The same gates.</h2>
-    <p class="intro">The orchestrator plans, dispatches, reviews gates, merges and reports. It does not do lane work in its own context. Lane agents do the work in git worktrees and hand back short summaries.</p>
+    <p class="intro">The orchestrator plans, dispatches, reviews and integrates. Workers implement only in assigned worktrees and return compact evidence. The main worktree handles orchestration, planning and integration.</p>
 
-    <figure class="info" id="info">
-      <img src="lanes-infographic.webp" width="1672" height="941" loading="lazy" decoding="async"
-        alt="How lanes works: a Claude Opus orchestrator triages each task by complexity into git-worktree lanes: T3 complex work to a Claude Opus lane, T2 moderate to a Claude Sonnet lane, T1 routine to DeepSeek as the primary coder, with GLM 5.3 Flash for simple, bounded work, behind a guarded relay, T0 mechanical to haiku or a script. Every lane flows into an independent review (Codex, or Claude Opus for security, money and migrations), loops through fix rounds until clean, re-tiers upward if needed, then merges and is verified on main.">
-      <p class="missing">Infographic: lanes-infographic.png (see the step list below for the same flow).</p>
-      <figcaption><span>The lanes flow, end to end.</span><a href="lanes-infographic.png">Open full size</a></figcaption>
-    </figure>
+    <div class="grid-2 infographics">
+      <figure class="info" id="info-workflow">
+        <img src="lanes-workflow-v0.1.0.png" width="1672" height="941" loading="lazy" decoding="async"
+          alt="Lanes workflow: Plan, Brief, Worktree, Review, Integrate, Verify. Parallel worktree tasks converge at independent review before integration. Main worktree is for orchestration and integration.">
+        <figcaption><span>Plan through verified integration</span><a href="lanes-workflow-v0.1.0.png">Open full size</a></figcaption>
+      </figure>
+      <figure class="info" id="info-handoff">
+        <img src="lanes-handoff-v0.1.0.png" width="1672" height="941" loading="lazy" decoding="async"
+          alt="Task handoff: a brief names Inputs, Ownership, Checks, and Stop condition. A worker completes the task in an isolated worktree and reports Input tokens, Cached input, Output tokens, Failures / acceptance.">
+        <figcaption><span>Short briefs, compact evidence</span><a href="lanes-handoff-v0.1.0.png">Open full size</a></figcaption>
+      </figure>
+    </div>
 
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
-      <li style="--c:var(--review)"><h3>Triage by complexity</h3><p>Every task gets a tier before dispatch, and the tier picks the model from the start: Opus for complex work, Sonnet for moderate work, DeepSeek for routine work (GLM for simple, bounded jobs), and Codex for routine reviews. Tasks only ever move up a tier.</p></li>
-      <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Every change gets an independent review before merge, the author never reviews its own work, and merges are verified on the main branch.</p></li>
+      <li style="--c:var(--review)"><h3>Route by task</h3><p>Sol at medium effort handles routine coordination. Opus 5.5 defaults to medium in Claude Code. Use high effort for legal meaning, security, difficult defects and final acceptance; use Luna or scripts for structural checks.</p></li>
+      <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Completion events lead to one deterministic check for hashes, check totals and unchanged files. An independent reviewer gates integration; the author never reviews its own work.</p></li>
     </ul>
 
     <div class="grid-2">
       <div>
         <h3>Per-task flow</h3>
         <ol class="flow">
-          <li><span><strong>Triage</strong> the task into a tier, then <strong>dev in a worktree</strong> with that tier's agent.</span></li>
-          <li class="gate-step"><span><strong>Independent review.</strong> The reviewer is never the author.</span></li>
-          <li class="gate-step"><span><strong>Fix rounds</strong> loop until the review is CLEAN.</span></li>
-          <li><span><strong><code>git merge --no-ff</code></strong> into the main branch.</span></li>
-          <li class="gate-step"><span><strong>Run the changed suites plus typecheck</strong> on main.</span></li>
-          <li><span><strong>Close the tracker item</strong> with evidence (SHA, counts).</span></li>
-          <li><span><strong>Remove the worktree and branch</strong>, then refill the lane from the ready queue.</span></li>
+          <li><span><strong>Brief the task</strong> with inputs, owned files, acceptance checks, limits and a stop condition.</span></li>
+          <li><span><strong>Implement in an assigned worktree</strong> and signal completion with the exit status.</span></li>
+          <li class="gate-step"><span><strong>Run one reconciliation check</strong> for file hashes, check totals and unchanged files.</span></li>
+          <li class="gate-step"><span><strong>Review independently.</strong> The author never reviews its own work.</span></li>
+          <li><span><strong>Integrate accepted changes</strong> in the main worktree, then update the tracker with evidence.</span></li>
+          <li><span><strong>Record usage and acceptance</strong> before closing the task.</span></li>
         </ol>
       </div>
       <div class="aside">
@@ -350,52 +355,61 @@ footer p{margin:0}
   </div>
 </section>
 
+<section class="block" id="release" aria-labelledby="release-title">
+  <div class="wrap">
+    <p class="kicker"><b>v0.1.0</b> Release notes</p>
+    <h2 id="release-title">Shorter tasks. Clearer evidence.</h2>
+    <p class="intro">This release makes lane handoffs smaller and easier to verify.</p>
+    <ul class="pillars">
+      <li style="--c:var(--work)"><h3>Complete briefs</h3><p>Workers receive inputs, exact ownership, acceptance checks, token limits and a stop condition. The main worktree stays focused on orchestration, planning and integration.</p></li>
+      <li style="--c:var(--review)"><h3>Compact proof</h3><p>Completion events replace repeated status scans. One deterministic check reports hashes, check totals and unchanged files; routine summaries target 10–12 lines.</p></li>
+      <li style="--c:var(--guard)"><h3>Recoverable sessions</h3><p>Per-task usage records include input, cached input, output, failures and acceptance. `session-detail` archives preserve recovery context before each compaction.</p></li>
+    </ul>
+    <p><a href="../CHANGELOG.md">Read the full 0.1.0 changelog</a></p>
+  </div>
+</section>
+
 <section class="block" id="routing" aria-labelledby="routing-title">
   <div class="wrap">
     <p class="kicker"><b>02</b> Routing</p>
     <h2 id="routing-title">Triage first. The tier picks the model.</h2>
-    <p class="intro">Every task is triaged by complexity before dispatch, so hard problems go straight to Opus and only routine work goes to the cheap models (DeepSeek first, GLM for simple, bounded jobs). Each tier bills to an account you already hold. Keys stay in your shell rc; the skill never stores them.</p>
+    <p class="intro">Use Sol at medium effort for routine coordination and Opus 5.5 at medium effort as the Claude Code default. Raise effort for legal meaning, security, difficult defects and final acceptance. Use Luna or scripts for structural checks, and reserve DeepSeek and GLM for simple tasks.</p>
     <table class="routes" aria-describedby="routes-note">
       <thead><tr><th scope="col">Tier / role</th><th scope="col">Lane</th><th scope="col">Billed to</th></tr></thead>
       <tbody>
         <tr class="r-guard">
-          <th scope="row"><span class="who">T3 Complex</span>Ambiguous or cross-cutting work; concurrency or state machines; authority, security or money logic; migrations and contracts; unknown-root-cause debugging; live ops; design</th>
-          <td data-label="Lane"><span class="model">Claude Opus</span> (<code>opus-lane</code>, high effort)</td>
-          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+          <th scope="row"><span class="who">High effort</span>Legal meaning, security, difficult defects, or final acceptance</th>
+          <td data-label="Lane"><span class="model">Codex Sol</span> or <span class="model">Claude Opus 5.5</span></td>
+          <td data-label="Billed to"><span class="pill">your ChatGPT or Claude plan</span></td>
         </tr>
         <tr class="r-guard">
           <th scope="row"><span class="who">T2 Moderate</span>Clear spec, but multi-file or needs design judgment</th>
-          <td data-label="Lane"><span class="model">Claude Sonnet</span> (<code>sonnet-lane</code>)</td>
-          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+          <td data-label="Lane"><span class="model">Codex Sol</span> by default; <code>sonnet-lane</code> for delegated Claude coding</td>
+          <td data-label="Billed to"><span class="pill">your ChatGPT or Claude plan</span></td>
         </tr>
         <tr class="r-work">
-          <th scope="row"><span class="who">T1 Routine</span>Well-specified, local, with clear tests: small features, fix rounds, refactors, test gaps</th>
-          <td data-label="Lane"><span class="model">DeepSeek</span> (<code>deepseek-flash</code>, thinking on) as the primary coder; <span class="model">GLM 5.3 Flash</span> (<code>z-ai/glm-5.3-flash</code> via OpenRouter) for simple, bounded work</td>
+          <th scope="row"><span class="who">Simple tasks</span>Well-specified, self-contained implementation with clear checks</th>
+          <td data-label="Lane"><span class="model">DeepSeek</span> or <span class="model">GLM 5.3 Flash</span> for bounded work</td>
           <td data-label="Billed to"><span class="pill">your DeepSeek / OpenRouter API keys</span></td>
         </tr>
         <tr class="r-work">
-          <th scope="row"><span class="who">T0 Mechanical</span>Sweeps, status, evidence</th>
-          <td data-label="Lane"><span class="model">haiku</span> or a script</td>
-          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
-        </tr>
-        <tr class="r-review">
-          <th scope="row"><span class="who">Reviews</span>Routine reviews and re-reviews</th>
-          <td data-label="Lane"><span class="model">OpenAI Codex</span> (<code>gpt-5.6-terra</code>)</td>
+          <th scope="row"><span class="who">Structural checks</span>Counts, hashes, format and unchanged-file checks</th>
+          <td data-label="Lane"><span class="model">Codex Luna</span> or a deterministic script</td>
           <td data-label="Billed to"><span class="pill">your ChatGPT plan</span></td>
         </tr>
         <tr class="r-review">
-          <th scope="row"><span class="who">First review of risky code</span>Authority, security, money or migration code</th>
-          <td data-label="Lane"><span class="model">Claude Opus</span></td>
-          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+          <th scope="row"><span class="who">Routine review</span>Independent review and fix rounds</th>
+          <td data-label="Lane"><span class="model">Codex Sol</span> at medium effort</td>
+          <td data-label="Billed to"><span class="pill">your ChatGPT plan</span></td>
         </tr>
-        <tr class="r-guard">
-          <th scope="row"><span class="who">Orchestration</span>Plans, triages, dispatches, merges, reports</th>
-          <td data-label="Lane"><span class="model">Claude Opus</span> (orchestrator)</td>
-          <td data-label="Billed to"><span class="pill">your Claude subscription</span></td>
+        <tr class="r-review">
+          <th scope="row"><span class="who">Orchestration</span>Plan, dispatch, report and integration</th>
+          <td data-label="Lane"><span class="model">Codex Sol</span> or Claude Opus 5.5, medium effort by default</td>
+          <td data-label="Billed to"><span class="pill">your ChatGPT or Claude plan</span></td>
         </tr>
       </tbody>
     </table>
-    <p class="routes-note" id="routes-note">Tasks only ever move <b>up</b> a tier: when a lane reports a task is harder or riskier than triaged, or after two failed reviews at the current tier. GLM's T1 share is tests, docs-with-code, mechanical refactors, huge-context reading, and overflow when DeepSeek already has 2 jobs running. When a T1 review fails, the next fix round switches to the other model before the task moves up a tier. Track first-pass review rates per model and revisit the split after about 10 tasks each. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>.</p>
+    <p class="routes-note" id="routes-note">Recommended orchestration defaults are Codex Sol at medium effort and Claude Opus 5.5 at medium effort. Use high effort only for legal meaning, security, difficult defects and final acceptance. Each task brief states a token cap; short drafts stop at 500 output tokens. Record input, cached input, output, failures and acceptance in the lane usage ledger. Use completion events and one reconciliation check instead of repeated status scans. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>, <code>CODEX_EFFORT</code>.</p>
     <ul class="gates">
       <li><strong>Review before merge</strong>Every change from any model gets an independent review. Fix rounds loop until CLEAN.</li>
       <li><strong>Workers stay in worktrees</strong>DeepSeek and GLM never run in a checkout holding <code>.env</code> or secrets.</li>
@@ -423,7 +437,7 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
         <ul class="installs">
           <li>In <code>~/.local/bin</code>: <code>claude-via</code>, <code>claude-deepseek</code>, <code>claude-glm</code>, <code>model-relay</code>, <code>relay-guard</code> and <code>codex-review</code>.</li>
           <li><code>~/.claude/{deepseek,glm}.json</code>, which hold the base URL, the model and the <em>name</em> of the key variable.</li>
-          <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: tiered Claude lane coders (Opus at high effort, Sonnet at medium), and <code>~/.claude/agents/{deepseek,glm,codex}.md</code>: guarded relays.</li>
+          <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: Opus lane at medium effort by default, with high for legal meaning, security, difficult defects and final acceptance; Sonnet handles delegated moderate coding. The other agents are guarded relays.</li>
         </ul>
       </div>
       <div>
@@ -445,16 +459,16 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
   <div class="wrap">
     <p class="kicker"><b>04</b> Use</p>
     <h2 id="use-title">Say it in any git project.</h2>
-    <p class="intro">Start Claude Code in the project and talk to the orchestrator.</p>
+    <p class="intro">Start Claude Code in the project and talk to the orchestrator. Status updates focus on completion events and changed lane states.</p>
     <ul class="cmds">
       <li><span class="say">/lanes start</span><p>Audits the project (instructions, git history, worktrees, tracker), shows what's done, in progress, ready and blocked, triages each task into a tier, asks a few setup questions one at a time, then runs the lanes.</p></li>
-      <li><span class="say">lane update</span><p>The active lanes, with agent and tier, task, concrete progress and an estimated %.</p></li>
-      <li><span class="say">lane update all</span><p>Every workstream task and its state.</p></li>
+      <li><span class="say">lane update</span><p>Blockers, completed events and changed lane states in a compact 10–12-line summary.</p></li>
+      <li><span class="say">lane update all</span><p>A concise view of every workstream task and its current state.</p></li>
       <li><span class="say">pause lanes · resume the lanes</span><p>Safe pause notes per lane, and resuming into the same worktrees.</p></li>
     </ul>
 
     <h3>Direct commands <span class="zero">no Claude tokens</span></h3>
-    <p style="color:var(--muted);font-size:16px;margin:0 0 16px">Run from the shell. Model overrides: <code>DEEPSEEK_MODEL=deepseek-v4-pro</code>, <code>GLM_MODEL=z-ai/glm-5.3</code>, <code>CODEX_MODEL=...</code>. To add another Anthropic-compatible provider, drop a <code>~/.claude/&lt;name&gt;.json</code> next to the others.</p>
+    <p style="color:var(--muted);font-size:16px;margin:0 0 16px">Run from the shell. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>; set <code>CODEX_EFFORT=high</code> for high-risk review. To add another Anthropic-compatible provider, drop a <code>~/.claude/&lt;name&gt;.json</code> next to the others.</p>
     <div class="code">
       <div class="code-head"><span>bash · direct commands</span><button class="copy" type="button" aria-label="Copy direct commands">Copy</button></div>
 <pre><code>cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 model-relay deepseek &lt; brief.md   <span class="c"># or: model-relay glm</span>
