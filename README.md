@@ -1,20 +1,20 @@
 # lanes
 
-![Skill version: 0.1.0](https://img.shields.io/badge/skill%20version-v0.1.0-16706a)
+![Skill version: 0.2.0](https://img.shields.io/badge/skill%20version-v0.2.0-16706a)
 
 `lanes` coordinates independent software tasks in Git worktrees from Claude Code or Codex. The orchestrator plans, dispatches and integrates; each worker gets a short, complete task in its own worktree, and an independent reviewer checks every completed lane.
 
-**Current release: 0.1.0** · [GitHub Pages](https://thebpandey.github.io/lanes/) · [Changelog](CHANGELOG.md)
+**Current release: 0.2.0** · [GitHub Pages](https://thebpandey.github.io/lanes/) · [Changelog](CHANGELOG.md)
 
 ## Infographics
 
-**Workflow:** Plan → Brief → Worktree → Review → Integrate → Verify.
+**Workflow:** Plan → Brief → Lanes → Review → Integrate → Verify. Each lane gets its own independent reviewer; FIX goes back to that lane, trivial prose edits bypass review, and `integrate.sh` gates every merge.
 
-![Lanes workflow: parallel worktree tasks converge at independent review before integration.](docs/lanes-workflow-v0.1.0.png)
+![Lanes workflow: each lane has its own independent reviewer; FIX loops back to the lane; CLEAN and trivial work pass through the integrate.sh gate.](docs/lanes-workflow-v0.2.0.png)
 
-**Task handoff:** each brief defines inputs, ownership, checks and a stop condition; each completion reports token use, failures and acceptance.
+**Task handoff:** each brief defines inputs, `owned.txt`, `checks.sh` and a stop condition; an independent reviewer returns a revision-bound verdict in `review.md`.
 
-![Task handoff fields and compact usage evidence.](docs/lanes-handoff-v0.1.0.png)
+![Task handoff: brief fields in, review.md verdict out.](docs/lanes-handoff-v0.2.0.png)
 
 ## How work moves
 

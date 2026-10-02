@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lanes v0.1.0 · worktree orchestration for Claude Code and Codex</title>
-<meta name="description" content="lanes v0.1.0 coordinates bounded software tasks in Git worktrees. Codex Sol and Claude Opus coordinate at medium effort; simple tasks use DeepSeek or GLM, with compact evidence and independent review.">
-<meta property="og:title" content="lanes v0.1.0: worktree orchestration for Claude Code and Codex">
+<title>lanes v0.2.0 · worktree orchestration for Claude Code and Codex</title>
+<meta name="description" content="lanes v0.2.0 coordinates bounded software tasks in Git worktrees. Codex Sol and Claude Opus coordinate at medium effort; simple tasks use DeepSeek or GLM, with compact evidence and independent review.">
+<meta property="og:title" content="lanes v0.2.0: worktree orchestration for Claude Code and Codex">
 <meta property="og:description" content="Short worker briefs, isolated worktrees, completion events, compact evidence, and independent review.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thebpandey.github.io/lanes/">
-<meta property="og:image" content="https://thebpandey.github.io/lanes/lanes-workflow-v0.1.0.png">
+<meta property="og:image" content="https://thebpandey.github.io/lanes/lanes-workflow-v0.2.0.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317150f'/%3E%3Cpath d='M7 10h12M7 16h12M7 22h12' stroke='%234fbfb6' stroke-width='2.4' stroke-linecap='round' stroke-dasharray='4 3'/%3E%3Crect x='21' y='7' width='3.4' height='18' rx='1.2' fill='%23f08a4b'/%3E%3C/svg%3E">
@@ -258,7 +258,7 @@ footer p{margin:0}
 <section class="hero" id="top" aria-labelledby="hero-title">
   <div class="wrap">
     <div>
-      <p class="eyebrow"><span>Claude Code + Codex</span><span>Skill v0.1.0</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
+      <p class="eyebrow"><span>Claude Code + Codex</span><span>Skill v0.2.0</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
       <h1 id="hero-title">lanes</h1>
       <p class="pitch"><span class="w">The right model for every task.</span> <span class="g">The same gates for every change.</span></p>
       <p class="lede">A multi-model orchestration skill for parallel software work. The orchestrator plans, dispatches and integrates; each worker receives a short, complete task in its own Git worktree, and an independent reviewer checks every completed lane. The main worktree handles orchestration, planning and integration.</p>
@@ -315,14 +315,14 @@ footer p{margin:0}
 
     <div class="grid-2 infographics">
       <figure class="info" id="info-workflow">
-        <img src="lanes-workflow-v0.1.0.png" width="1672" height="941" loading="lazy" decoding="async"
-          alt="Lanes workflow: Plan, Brief, Worktree, Review, Integrate, Verify. Parallel worktree tasks converge at independent review before integration. Main worktree is for orchestration and integration.">
-        <figcaption><span>Plan through verified integration</span><a href="lanes-workflow-v0.1.0.png">Open full size</a></figcaption>
+        <img src="lanes-workflow-v0.2.0.png" width="1672" height="941" loading="lazy" decoding="async"
+          alt="Lanes workflow: Plan, Brief, Lanes, Review, Integrate, Verify. Each lane has its own independent reviewer; FIX loops back to that lane; CLEAN work and trivial prose edits pass through the integrate.sh gate to merge and verify. The orchestrator never reviews.">
+        <figcaption><span>Plan through verified integration</span><a href="lanes-workflow-v0.2.0.png">Open full size</a></figcaption>
       </figure>
       <figure class="info" id="info-handoff">
-        <img src="lanes-handoff-v0.1.0.png" width="1672" height="941" loading="lazy" decoding="async"
-          alt="Task handoff: a brief names Inputs, Ownership, Checks, and Stop condition. A worker completes the task in an isolated worktree and reports Input tokens, Cached input, Output tokens, Failures / acceptance.">
-        <figcaption><span>Short briefs, compact evidence</span><a href="lanes-handoff-v0.1.0.png">Open full size</a></figcaption>
+        <img src="lanes-handoff-v0.2.0.png" width="1672" height="941" loading="lazy" decoding="async"
+          alt="Task handoff: a brief names Inputs, owned.txt, checks.sh and Stop condition. A worker completes the task in an isolated worktree; an independent reviewer writes review.md with TASK, REVISION, SCOPE, CHECKS and a CLEAN or FIX verdict.">
+        <figcaption><span>Short briefs, revision-bound verdicts</span><a href="lanes-handoff-v0.2.0.png">Open full size</a></figcaption>
       </figure>
     </div>
 
@@ -357,15 +357,15 @@ footer p{margin:0}
 
 <section class="block" id="release" aria-labelledby="release-title">
   <div class="wrap">
-    <p class="kicker"><b>v0.1.0</b> Release notes</p>
-    <h2 id="release-title">Shorter tasks. Clearer evidence.</h2>
-    <p class="intro">This release makes lane handoffs smaller and easier to verify.</p>
+    <p class="kicker"><b>v0.2.0</b> Release notes</p>
+    <h2 id="release-title">Independent review. Enforced merges.</h2>
+    <p class="intro">The orchestrator no longer reviews its own lanes, and unreviewed work can no longer reach the main branch.</p>
     <ul class="pillars">
-      <li style="--c:var(--work)"><h3>Complete briefs</h3><p>Workers receive inputs, exact ownership, acceptance checks, token limits and a stop condition. The main worktree stays focused on orchestration, planning and integration.</p></li>
-      <li style="--c:var(--review)"><h3>Compact proof</h3><p>Completion events replace repeated status scans. The reviewer's scope check reports hashes, out-of-scope paths and uncommitted work; routine summaries target 10–12 lines.</p></li>
-      <li style="--c:var(--guard)"><h3>Recoverable sessions</h3><p>Per-task usage records include input, cached input, output, failures and acceptance. `session-detail` archives preserve recovery context before each compaction.</p></li>
+      <li style="--c:var(--work)"><h3>A reviewer per lane</h3><p>Every completed lane goes to an independent reviewer: <code>lane-reviewer</code> (Opus 5.5, medium) in Claude Code or <code>gpt-5.6-terra</code> (medium) in Codex. FIX findings go back to the same lane.</p></li>
+      <li style="--c:var(--review)"><h3>Gated in code</h3><p><code>lane/integrate.sh</code> is the only merge path. It requires a CLEAN verdict for the exact lane head; small prose edits it classifies as trivial skip review.</p></li>
+      <li style="--c:var(--guard)"><h3>Hardened relays</h3><p>External models refuse the main checkout and <code>.env</code> files, the relay guard blocks command smuggling, relays run on macOS, and pushes require a clean secret scan.</p></li>
     </ul>
-    <p><a href="../CHANGELOG.md">Read the full 0.1.0 changelog</a></p>
+    <p><a href="../CHANGELOG.md">Read the full 0.2.0 changelog</a></p>
   </div>
 </section>
 

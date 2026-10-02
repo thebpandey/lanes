@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-02
+
+Independent review for every lane, review-gated integration enforced in code, and hardened relays.
 
 - New `lane/integrate.sh`, the only merge path: it refuses lane work without a CLEAN `review.md` for the exact lane head, re-runs the scope check, merges with `--no-ff`, aborts on conflict (exit 3), and logs each merge. Review-gating moves from instruction to code.
 - Trivial work skips review, decided by the script (`--classify`): prose files only (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`), at most 40 changed lines, no deletes or renames, no agent-instruction (`AGENTS.md`, `CLAUDE.md`, `SKILL.md`, …), control (`.claude/`, `.github/`, …) or legal files. The scope check still applies.
