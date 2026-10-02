@@ -1,23 +1,34 @@
 #!/usr/bin/env bash
-# codex-review <base-ref> < checklist      run in the worktree to review; checklist text on stdin
+# codex-review <base-ref> [owned-paths-file] < checklist   run in the lane worktree; checklist text on stdin
 # codex-review --wait <job-dir>            keep waiting for a review that was still running
-# Read-only Codex review (Codex CLI on the user's ChatGPT plan). Model: $CODEX_MODEL (default gpt-6.1-sol).
+# Independent read-only Codex review (Codex CLI on the user's ChatGPT plan). Model: $CODEX_MODEL (default gpt-5.6-terra).
+# With an owned-paths file, lane/scope-check.sh runs first; then checks.sh beside that file (the lane's acceptance checks)
+# runs here, outside Codex's read-only sandbox, which has no writable temp dir for test runners. Both results go to the reviewer.
 # Runs detached; waits up to ~9 min per call ($RELAY_WAIT_S) so it fits one Bash tool call.
 set -uo pipefail
-WAIT_S=${RELAY_WAIT_S:-540}; RULES="$HOME/.claude/skills/lanes/rules/REVIEW_RULES.md"
-finish() { local j=$1; echo "exit=$(cat "$j/rc") model=$(cat "$j/model") effort=$(cat "$j/effort") base=$(cat "$j/base") dir=$(cat "$j/cwd")"
+WAIT_S=${RELAY_WAIT_S:-540}; LK=${LANES_HOME:-$HOME/.claude/skills/lanes}; RULES="$LK/rules/REVIEW_RULES.md"
+finish() { local j=$1; echo "exit=$(cat "$j/rc") model=$(cat "$j/model") effort=$(cat "$j/effort") base=$(cat "$j/base") revision=$(cat "$j/revision" 2>/dev/null || echo unknown) dir=$(cat "$j/cwd")"
+  [ -s "$j/scope" ] && tail -1 "$j/scope"; [ -f "$j/checks.rc" ] && echo "CHECKS: checks.sh exit=$(cat "$j/checks.rc")"
+  [ -f "$j/checks.out" ] && tail -5 "$j/checks.out"
   if [ -s "$j/out.md" ]; then echo "VERDICT:"; head -c 4000 "$j/out.md"; else echo "no verdict; log tail:"; tail -8 "$j/log"; fi; }
 wait_job() { local j=$1 t=0; while [ ! -f "$j/rc" ] && [ $t -lt "$WAIT_S" ]; do sleep 5; t=$((t+5)); done
   if [ -f "$j/rc" ]; then finish "$j"; else echo "STILL RUNNING after ${WAIT_S}s. Continue with exactly: codex-review --wait $j"; fi; }
 if [ "${1:-}" = "--wait" ]; then [ -d "${2:-}" ] || { echo "no such job: ${2:-}"; exit 2; }; wait_job "$2"; exit 0; fi
-base=${1:?usage: codex-review <base-ref> < checklist   (run inside the worktree)}
+base=${1:?usage: codex-review <base-ref> [owned-paths-file] < checklist   (run inside the lane worktree)}; owned=${2:-}
 command -v codex >/dev/null || { echo "codex CLI not installed; use a Claude reviewer instead"; exit 3; }
 git rev-parse --verify -q "$base^{commit}" >/dev/null || { echo "unknown base ref: $base"; exit 2; }
 job=$(mktemp -d "$HOME/.local/state/codex-review.XXXXXX"); cat > "$job/checklist.md"
 [ -s "$job/checklist.md" ] || { echo "empty checklist on stdin"; exit 2; }
-pwd > "$job/cwd"; echo "$base" > "$job/base"; echo "${CODEX_MODEL:-gpt-6.1-sol}" > "$job/model"
+pwd > "$job/cwd"; echo "$base" > "$job/base"; echo "${CODEX_MODEL:-gpt-5.6-terra}" > "$job/model"; git rev-parse HEAD > "$job/revision"
+# Exit 1 (scope FAIL) is a result the reviewer must report, not an error, so the status is not checked here.
+[ -z "$owned" ] || bash "$LK/lane/scope-check.sh" "$base" "$owned" > "$job/scope" 2>&1
+checks="$(dirname "${owned:-/nonexistent}")/checks.sh"
+[ -z "$owned" ] || [ ! -f "$checks" ] || relay-spawn "$job/checks.rc" 900 /dev/null "$job/checks.out" "$job/checks.out" bash "$checks"
 effort=${CODEX_EFFORT:-medium}; case "$effort" in medium|high) ;; *) echo "CODEX_EFFORT must be medium or high" >&2; exit 2;; esac
 echo "$effort" > "$job/effort"
-{ cat "$RULES" 2>/dev/null; printf '\nBase: %s. Diff: run `git diff %s...HEAD` in this repo.\n' "$base" "$base"; cat "$job/checklist.md"; } > "$job/prompt.md"
+{ cat "$RULES" 2>/dev/null; printf '\nBase: %s. Revision under review: %s. Diff: run `git diff %s...HEAD` in this repo.\n' "$base" "$(cat "$job/revision")" "$base"
+  [ -s "$job/scope" ] && { echo "Scope check (already run; report its last line under SCOPE):"; cat "$job/scope"; }
+  [ -f "$job/checks.rc" ] && { echo "Acceptance checks (checks.sh, already run outside your sandbox; exit=$(cat "$job/checks.rc"); use this result under CHECKS, do not re-run):"; tail -c 3000 "$job/checks.out"; }
+  cat "$job/checklist.md"; } > "$job/prompt.md"
 nohup relay-spawn "$job/rc" 1800 /dev/null "$job/log" "$job/log" codex exec --skip-git-repo-check -s read-only -C "$(pwd)" -m "$(cat "$job/model")" -c "model_reasoning_effort=$effort" --output-last-message "$job/out.md" "$(cat "$job/prompt.md")" >/dev/null 2>&1 &
 echo "job: $job (codex review of $(pwd) vs $base)"; wait_job "$job"

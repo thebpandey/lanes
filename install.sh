@@ -3,7 +3,7 @@
 # Installs the lanes harness for Claude Code on this machine (re-runnable; replaced files are backed up as .bak.<ts>):
 #   ~/.local/bin: claude-via, claude-deepseek, claude-glm, model-relay, relay-guard, relay-spawn, codex-review
 #   ~/.claude/{deepseek,glm}.json  (routing only: base URL, model, NAME of the key variable — never the key)
-#   ~/.claude/agents/{deepseek,glm,codex}.md (guarded relays) + {opus-lane,sonnet-lane}.md (tiered Claude lane coders)
+#   ~/.claude/agents/{deepseek,glm,codex}.md (guarded relays) + {opus-lane,sonnet-lane}.md (tiered Claude lane coders) + lane-reviewer.md
 # --check    only report what is installed / missing (no writes)
 # --watchdog install a systemd user timer running lane-watchdog.sh clean at :17 and :47 (Linux)
 # --smoke    run one tiny task through each provider in a temp dir (costs fractions of a cent)
@@ -21,12 +21,12 @@ if [ $CHECK = 0 ]; then
   mkdir -p "$HOME/.local/bin" "$HOME/.local/state" "$HOME/.claude/agents"
   for f in claude-via claude-deepseek claude-glm model-relay relay-guard relay-spawn codex-review; do put "$K/bin/$f" "$HOME/.local/bin/$f" 755; done
   for p in deepseek glm; do put "$K/config/$p.json" "$HOME/.claude/$p.json" 600; done
-  for a in deepseek glm codex opus-lane sonnet-lane; do put "$K/agents/$a.md" "$HOME/.claude/agents/$a.md" 644; done
+  for a in deepseek glm codex opus-lane sonnet-lane lane-reviewer; do put "$K/agents/$a.md" "$HOME/.claude/agents/$a.md" 644; done
   chmod +x "$K"/lane/*.sh
 fi
 echo "--- prerequisites"
 for c in claude git python3 curl; do command -v $c >/dev/null && echo "  ok: $c" || echo "  MISSING: $c (required)"; done
-command -v codex >/dev/null && echo "  ok: codex (Codex reviews on your ChatGPT plan)" || echo "  optional: codex CLI not found — reviews fall back to Claude reviewers (install: npm i -g @openai/codex, then 'codex login')"
+command -v codex >/dev/null && echo "  ok: codex (Codex reviews on your ChatGPT plan)" || echo "  optional: codex CLI not found — needed only for Codex-hosted lane reviews (codex-review); Claude Code uses the lane-reviewer agent (install: npm i -g @openai/codex, then 'codex login')"
 command -v bd >/dev/null && echo "  ok: bd (Beads tracker)" || echo "  optional: bd (Beads) not found — the skill uses the project's own tracker or asks you"
 command -v gitleaks >/dev/null && echo "  ok: gitleaks (pre-push secret scan)" || echo "  MISSING: gitleaks (required before any push; lane/secret-scan.sh blocks without it). Install: https://github.com/gitleaks/gitleaks"
 command -v docker >/dev/null && echo "  ok: docker (disposable test databases)" || echo "  optional: docker not found — agents cannot spin up disposable databases"
@@ -48,5 +48,5 @@ if [ $SMOKE = 1 ] && [ $missing = 0 ]; then
   for p in deepseek glm; do echo "--- smoke: $p"; echo 'Create s.py with sq(x) returning x*x, run python3 -c "from s import sq; print(sq(9))", and report the printed output.' | RELAY_WAIT_S=300 "$HOME/.local/bin/model-relay" "$p" | sed -n '2,6p'; done
   cd - >/dev/null; rm -rf "$t"
 fi
-echo "--- done. Restart Claude Code so the deepseek, glm, codex, opus-lane and sonnet-lane subagents load. Then use /lanes in any git project."
+echo "--- done. Restart Claude Code so the deepseek, glm, codex, opus-lane, sonnet-lane and lane-reviewer subagents load. Then use /lanes in any git project."
 [ $missing = 0 ] || echo "!!! Add the missing API key(s) above, then re-run: bash $K/install.sh --smoke"

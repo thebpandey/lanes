@@ -261,7 +261,7 @@ footer p{margin:0}
       <p class="eyebrow"><span>Claude Code + Codex</span><span>Skill v0.1.0</span><span>MIT licensed</span><span>Linux &amp; macOS</span></p>
       <h1 id="hero-title">lanes</h1>
       <p class="pitch"><span class="w">The right model for every task.</span> <span class="g">The same gates for every change.</span></p>
-      <p class="lede">A multi-model orchestration skill for parallel software work. The orchestrator plans and reviews; each worker receives a short, complete task in its own Git worktree. The main worktree handles orchestration, planning and integration.</p>
+      <p class="lede">A multi-model orchestration skill for parallel software work. The orchestrator plans, dispatches and integrates; each worker receives a short, complete task in its own Git worktree, and an independent reviewer checks every completed lane. The main worktree handles orchestration, planning and integration.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="https://github.com/thebpandey/lanes">
           <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -311,7 +311,7 @@ footer p{margin:0}
   <div class="wrap">
     <p class="kicker"><b>01</b> How it works</p>
     <h2 id="how-title">One orchestrator. Many lanes. The same gates.</h2>
-    <p class="intro">The orchestrator plans, dispatches, reviews and integrates. Workers implement only in assigned worktrees and return compact evidence. The main worktree handles orchestration, planning and integration.</p>
+    <p class="intro">The orchestrator plans, dispatches, acts on review verdicts and integrates; it never reviews lane work itself. Workers implement only in assigned worktrees and return compact evidence. The main worktree handles orchestration, planning and integration.</p>
 
     <div class="grid-2 infographics">
       <figure class="info" id="info-workflow">
@@ -329,7 +329,7 @@ footer p{margin:0}
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Lanes are worktrees</h3><p>Each lane is a git worktree with one agent in it. Lanes run in parallel, up to a cap you choose (default 6 concurrent agents, reviews included).</p></li>
       <li style="--c:var(--review)"><h3>Route by task</h3><p>Sol at medium effort handles routine coordination. Opus 5.5 defaults to medium in Claude Code. Use high effort for legal meaning, security, difficult defects and final acceptance; use Luna or scripts for structural checks.</p></li>
-      <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Completion events lead to one deterministic check for hashes, check totals and unchanged files. An independent reviewer gates integration; the author never reviews its own work.</p></li>
+      <li style="--c:var(--guard)"><h3>Gates don't change</h3><p>Each completion event goes to an independent reviewer, never the author or the orchestrator. It runs a deterministic scope check (hashes, out-of-scope paths, uncommitted work) and returns CLEAN or FIX for the exact revision.</p></li>
     </ul>
 
     <div class="grid-2">
@@ -362,7 +362,7 @@ footer p{margin:0}
     <p class="intro">This release makes lane handoffs smaller and easier to verify.</p>
     <ul class="pillars">
       <li style="--c:var(--work)"><h3>Complete briefs</h3><p>Workers receive inputs, exact ownership, acceptance checks, token limits and a stop condition. The main worktree stays focused on orchestration, planning and integration.</p></li>
-      <li style="--c:var(--review)"><h3>Compact proof</h3><p>Completion events replace repeated status scans. One deterministic check reports hashes, check totals and unchanged files; routine summaries target 10–12 lines.</p></li>
+      <li style="--c:var(--review)"><h3>Compact proof</h3><p>Completion events replace repeated status scans. The reviewer's scope check reports hashes, out-of-scope paths and uncommitted work; routine summaries target 10–12 lines.</p></li>
       <li style="--c:var(--guard)"><h3>Recoverable sessions</h3><p>Per-task usage records include input, cached input, output, failures and acceptance. `session-detail` archives preserve recovery context before each compaction.</p></li>
     </ul>
     <p><a href="../CHANGELOG.md">Read the full 0.1.0 changelog</a></p>
@@ -398,9 +398,9 @@ footer p{margin:0}
           <td data-label="Billed to"><span class="pill">your ChatGPT plan</span></td>
         </tr>
         <tr class="r-review">
-          <th scope="row"><span class="who">Routine review</span>Independent review and fix rounds</th>
-          <td data-label="Lane"><span class="model">Codex Sol</span> at medium effort</td>
-          <td data-label="Billed to"><span class="pill">your ChatGPT plan</span></td>
+          <th scope="row"><span class="who">Lane review</span>Every completed lane, and each fix round</th>
+          <td data-label="Lane"><span class="model">Claude Opus 5.5</span> (<code>lane-reviewer</code>) or <span class="model">Codex Terra</span> (<code>gpt-5.6-terra</code>), medium effort</td>
+          <td data-label="Billed to"><span class="pill">your Claude or ChatGPT plan</span></td>
         </tr>
         <tr class="r-review">
           <th scope="row"><span class="who">Orchestration</span>Plan, dispatch, report and integration</th>
@@ -409,11 +409,11 @@ footer p{margin:0}
         </tr>
       </tbody>
     </table>
-    <p class="routes-note" id="routes-note">Recommended orchestration defaults are Codex Sol at medium effort and Claude Opus 5.5 at medium effort. Use high effort only for legal meaning, security, difficult defects and final acceptance. Each task brief states a token cap; short drafts stop at 500 output tokens. Record input, cached input, output, failures and acceptance in the lane usage ledger. Use completion events and one reconciliation check instead of repeated status scans. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>, <code>CODEX_EFFORT</code>.</p>
+    <p class="routes-note" id="routes-note">Recommended orchestration defaults are Codex Sol at medium effort and Claude Opus 5.5 at medium effort. Use high effort only for legal meaning, security, difficult defects and final acceptance. Each task brief states a token cap; short drafts stop at 500 output tokens. Record input, cached input, output, failures and acceptance in the lane usage ledger. Completion events trigger an independent review instead of repeated status scans. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>, <code>CODEX_EFFORT</code>.</p>
     <ul class="gates">
-      <li><strong>Review before merge</strong>Every change from any model gets an independent review. Fix rounds loop until CLEAN.</li>
-      <li><strong>Workers stay in worktrees</strong>DeepSeek and GLM never run in a checkout holding <code>.env</code> or secrets.</li>
-      <li><strong>No Codex? Still reviewed.</strong>Without the Codex CLI, reviews use Claude.</li>
+      <li><strong>Review before merge</strong>Every lane gets an independent reviewer, never the orchestrator. FIX findings go back to the same lane; only a CLEAN verdict for the current revision is integrated.</li>
+      <li><strong>Workers stay in worktrees</strong><code>model-relay</code> refuses the main checkout and any worktree holding <code>.env</code> files.</li>
+      <li><strong>Either host reviews.</strong>Claude Code uses <code>lane-reviewer</code>; Codex uses <code>codex-review</code>.</li>
     </ul>
   </div>
 </section>
@@ -426,18 +426,18 @@ footer p{margin:0}
     <div class="code">
       <div class="code-head"><span>bash · install</span><button class="copy" type="button" aria-label="Copy install commands">Copy</button></div>
 <pre><code>git clone https://github.com/thebpandey/lanes ~/.claude/skills/lanes
-bash ~/.claude/skills/lanes/install.sh            <span class="c"># installs relays, configs, and the opus-lane/sonnet-lane/deepseek/glm/codex subagents</span>
+bash ~/.claude/skills/lanes/install.sh            <span class="c"># installs relays, configs, and the opus-lane/sonnet-lane/lane-reviewer/deepseek/glm/codex subagents</span>
 bash ~/.claude/skills/lanes/install.sh --smoke    <span class="c"># optional: one tiny task through each provider</span>
 bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Linux): timer that cleans orphaned agent work</span></code></pre>
     </div>
     <div class="grid-2">
       <div>
-        <p class="note"><b>Then restart Claude Code</b><span>so the <code>opus-lane</code>, <code>sonnet-lane</code>, <code>deepseek</code>, <code>glm</code> and <code>codex</code> subagents load. Until then, the direct commands work without a restart.</span></p>
+        <p class="note"><b>Then restart Claude Code</b><span>so the <code>opus-lane</code>, <code>sonnet-lane</code>, <code>lane-reviewer</code>, <code>deepseek</code>, <code>glm</code> and <code>codex</code> subagents load. Until then, the direct commands work without a restart.</span></p>
         <h3>What it installs</h3>
         <ul class="installs">
           <li>In <code>~/.local/bin</code>: <code>claude-via</code>, <code>claude-deepseek</code>, <code>claude-glm</code>, <code>model-relay</code>, <code>relay-guard</code>, <code>relay-spawn</code> and <code>codex-review</code>.</li>
           <li><code>~/.claude/{deepseek,glm}.json</code>, which hold the base URL, the model and the <em>name</em> of the key variable.</li>
-          <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: Opus lane at medium effort by default, with high for legal meaning, security, difficult defects and final acceptance; Sonnet handles delegated moderate coding. The other agents are guarded relays.</li>
+          <li><code>~/.claude/agents/{opus-lane,sonnet-lane}.md</code>: Opus lane at medium effort by default, with high for legal meaning, security, difficult defects and final acceptance; Sonnet handles delegated moderate coding. <code>lane-reviewer.md</code> is the independent Opus 5.5 reviewer (medium effort, read-only) for every completed lane. The other agents are guarded relays.</li>
         </ul>
       </div>
       <div>
@@ -446,7 +446,7 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
           <li><span class="tag">Required</span>Claude Code, <code>git</code>, <code>python3</code>, <code>curl</code> and <code>bash</code> on Linux or macOS. The watchdog timer is Linux/systemd only.</li>
           <li><span class="tag">Key</span><code>DEEPSEEK_API_KEY</code>: create one at <a href="https://platform.deepseek.com/api_keys">platform.deepseek.com</a>.</li>
           <li><span class="tag">Key</span><code>OPENROUTER_API_KEY</code>: create one at <a href="https://openrouter.ai/keys">openrouter.ai/keys</a>. Set a spend limit, and under Privacy block providers that train on prompts.</li>
-          <li><span class="tag">Optional</span>The Codex CLI (<code>npm i -g @openai/codex</code>, then <code>codex login</code>) for Codex reviews. Without it, reviews use Claude.</li>
+          <li><span class="tag">Optional</span>The Codex CLI (<code>npm i -g @openai/codex</code>, then <code>codex login</code>) for Codex-hosted lane reviews. Claude Code reviews use the <code>lane-reviewer</code> agent.</li>
           <li><span class="tag">Optional</span>Docker, for disposable test databases. Beads (<code>bd</code>) for issue tracking.</li>
         </ul>
         <p style="color:var(--muted);font-size:15px;margin:16px 0 0">Export keys in your shell rc. Never paste a key into the chat; the skill never writes one anywhere.</p>
@@ -472,7 +472,7 @@ bash ~/.claude/skills/lanes/install.sh --watchdog <span class="c"># optional (Li
     <div class="code">
       <div class="code-head"><span>bash · direct commands</span><button class="copy" type="button" aria-label="Copy direct commands">Copy</button></div>
 <pre><code>cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 model-relay deepseek &lt; brief.md   <span class="c"># or: model-relay glm</span>
-cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 codex-review main &lt; checklist.md
+cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 codex-review main owned.txt &lt; checklist.md
 ~/.claude/skills/lanes/lane/new-worktree.sh &lt;branch&gt;                  <span class="c"># worktree + monorepo node_modules wiring</span>
 ~/.claude/skills/lanes/lane/lane-status.sh                            <span class="c"># evidence table for "lane update"</span></code></pre>
     </div>
@@ -499,7 +499,7 @@ cd &lt;worktree&gt; &amp;&amp; RELAY_WAIT_S=6000 codex-review main &lt; checklis
     <div class="code">
       <div class="code-head"><span>bash · uninstall</span><button class="copy" type="button" aria-label="Copy uninstall commands">Copy</button></div>
 <pre><code>rm -f ~/.local/bin/{claude-via,claude-deepseek,claude-glm,model-relay,relay-guard,relay-spawn,codex-review}
-rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex,opus-lane,sonnet-lane}.md
+rm -f ~/.claude/{deepseek,glm}.json ~/.claude/agents/{deepseek,glm,codex,opus-lane,sonnet-lane,lane-reviewer}.md
 systemctl --user disable --now lanes-watchdog.timer 2&gt;/dev/null; rm -rf ~/.claude/skills/lanes</code></pre>
     </div>
   </div>

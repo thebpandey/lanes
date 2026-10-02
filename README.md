@@ -2,7 +2,7 @@
 
 ![Skill version: 0.1.0](https://img.shields.io/badge/skill%20version-v0.1.0-16706a)
 
-`lanes` coordinates independent software tasks in Git worktrees from Claude Code or Codex. The orchestrator plans and reviews; each worker gets a short, complete task in its own worktree.
+`lanes` coordinates independent software tasks in Git worktrees from Claude Code or Codex. The orchestrator plans, dispatches and integrates; each worker gets a short, complete task in its own worktree, and an independent reviewer checks every completed lane.
 
 **Current release: 0.1.0** · [GitHub Pages](https://thebpandey.github.io/lanes/) · [Changelog](CHANGELOG.md)
 
@@ -21,14 +21,15 @@
 1. The orchestrator checks the project's instructions, current tracker and worktrees, then makes a short dependency-aware plan.
 2. Each brief names the task inputs and completed boundary, exact file ownership, acceptance checks, token limits and stop condition.
 3. Workers implement only in assigned worktrees. DeepSeek and GLM receive simple, bounded tasks only; neither receives secrets or private data.
-4. Completion events replace repeated status scans. One deterministic reconciliation check reports changed-file hashes, check totals and unchanged files.
-5. An independent review gates integration. The main worktree is for orchestration, planning, integration and `session-detail` archives before context compaction.
+4. Completion events replace repeated status scans. Each completed lane goes to an independent reviewer (Opus 5.5 at medium effort in Claude Code, `gpt-5.6-terra` at medium in Codex), never to the orchestrator. The reviewer runs `lane/scope-check.sh` (changed-file hashes, out-of-scope paths, uncommitted work) and returns a revision-bound CLEAN or FIX verdict.
+5. The orchestrator acts on the verdict: CLEAN for the lane's current revision is integrated; FIX findings go back to the same lane, and the new revision is reviewed again. The main worktree is for orchestration, planning, integration and `session-detail` archives before context compaction.
 
 ## Model and effort routing
 
 | Work | Recommended routing |
 |---|---|
-| Routine coordination and review | Codex `gpt-6.1-sol`, medium effort |
+| Routine coordination | Codex `gpt-6.1-sol`, medium effort |
+| Lane review (every completed lane) | `lane-reviewer` (Opus 5.5, medium) in Claude Code; `codex-review` with `gpt-5.6-terra`, medium, in Codex |
 | Claude Code orchestration | Opus 5.5, medium effort |
 | Legal meaning, security, difficult defects, final acceptance | High effort |
 | Bounded structural checks | Codex Luna or deterministic scripts |
@@ -62,13 +63,14 @@ Direct commands:
 
 ```bash
 cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < brief.md  # or glm for a simple bounded task
-cd <worktree> && RELAY_WAIT_S=6000 CODEX_EFFORT=high codex-review main < checklist.md
+cd <worktree> && RELAY_WAIT_S=6000 codex-review main owned.txt < checklist.md   # Codex lane review
+~/.claude/skills/lanes/lane/scope-check.sh <base> owned.txt   # the reviewer's scope gate; checks.sh beside owned.txt holds the acceptance checks
 ~/.claude/skills/lanes/lane/new-worktree.sh <branch>
 ~/.claude/skills/lanes/lane/lane-status.sh
 ~/.claude/skills/lanes/lane/secret-scan.sh <base> [head]  # required before any push; exit 0 = clean
 ```
 
-`CODEX_MODEL` selects the review model (default `gpt-6.1-sol`); `CODEX_EFFORT` selects `medium` or `high`. Use high effort for the risk cases above. `DEEPSEEK_MODEL` and `GLM_MODEL` override provider models.
+`CODEX_MODEL` selects the review model (default `gpt-5.6-terra`); `CODEX_EFFORT` selects `medium` (default) or `high`. `DEEPSEEK_MODEL` and `GLM_MODEL` override provider models.
 
 ## Safety
 

@@ -7,7 +7,7 @@ metadata:
 
 # Lanes: orchestration harness
 
-You are the orchestrator. You plan, dispatch, review gates, integrate and report. Do all implementation work in assigned worktrees. Use the main worktree only for orchestration, integration, planning, and writing session-detail logs before context compaction. Workers own only their assigned files in their assigned worktrees.
+You are the orchestrator. You plan, dispatch, act on independent review verdicts, integrate and report. You never review lane work yourself: no reading diffs to judge them, no running reviews or acceptance checks on a lane's result. Do all implementation work in assigned worktrees. Use the main worktree only for orchestration, integration, planning, and writing session-detail logs before context compaction. Workers own only their assigned files in their assigned worktrees.
 
 Paths: `K=~/.claude/skills/lanes`. The per-project state dir comes from `S=$(. $K/lane/lane-env.sh; lanes_state)`, which is `~/.local/state/lanes/<repo>-<hash>/`. It holds `lanes.tsv` (the lane registry) and `lanes/<lane>/` (briefs, reports, reviews). In Codex, also read [CODEX.md](CODEX.md).
 
@@ -15,7 +15,7 @@ Paths: `K=~/.claude/skills/lanes`. The per-project state dir comes from `S=$(. $
 
 Run `bash $K/install.sh --check`. If something is missing, run `bash $K/install.sh` and relay its ACTION lines to the user exactly. Missing API keys are the user's job: they add `DEEPSEEK_API_KEY` from platform.deepseek.com and `OPENROUTER_API_KEY` from openrouter.ai/keys to `~/.bashrc`. Never ask the user to paste a key into the chat, and never write a key anywhere yourself.
 
-After installing, the user must restart Claude Code before the `opus-lane`, `sonnet-lane`, `deepseek`, `glm` and `codex` subagents appear. Until then, use the direct commands in §3. They need no restart.
+After installing, the user must restart Claude Code before the `opus-lane`, `sonnet-lane`, `lane-reviewer`, `deepseek`, `glm` and `codex` subagents appear. Until then, use the direct commands in §3. They need no restart.
 
 ## 1. Start or resume on a project (`/lanes start`)
 
@@ -31,32 +31,32 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 
 | Tier | Signals (any one is enough) | Dev lane | Review |
 |---|---|---|---|
-| **T3 Complex** | Legal meaning, security, difficult defects, or final acceptance | Codex Sol or Claude Opus 5.5 at high effort | Independent high-effort review |
-| **T2 Moderate** | Clear multi-file work needing judgment, cross-cutting changes, or unfamiliar code | Codex Sol at medium effort; `sonnet-lane` at medium effort when a Claude coding worker fits | Codex Sol at medium effort |
-| **T1 Routine** | Well-specified coding or docs task with clear acceptance checks | DeepSeek; GLM for simple bounded tasks | Codex Sol at medium effort |
+| **T3 Complex** | Legal meaning, security, difficult defects, or final acceptance | Codex Sol or Claude Opus 5.5 at high effort | Independent reviewer (§3) |
+| **T2 Moderate** | Clear multi-file work needing judgment, cross-cutting changes, or unfamiliar code | Codex Sol at medium effort; `sonnet-lane` at medium effort when a Claude coding worker fits | Independent reviewer (§3) |
+| **T1 Routine** | Well-specified coding or docs task with clear acceptance checks | DeepSeek; GLM for simple bounded tasks | Independent reviewer (§3) |
 | **T0 Structural** | Bounded counts, hashes, format and unchanged-file checks | Codex Luna or deterministic scripts | Deterministic result; inspect failures only |
 
 - **Routine coordination:** use gpt-6.1-sol at medium effort in Codex and Opus 5.5 at medium effort in Claude Code. Raise effort to high only for legal meaning, security, difficult defects, or final acceptance. Use Luna for bounded structural checks. Use DeepSeek and GLM only for simple, self-contained tasks; choose GLM for the smallest mechanical tasks.
 - **Re-tier upward:** re-tier as soon as a lane reports the task is harder or riskier than triaged, or after two failed reviews at the current tier. Never downgrade a task mid-flight.
 - **Fix rounds:** they usually stay with the author's tier. A fix round for T3 code may go to T1 when the review findings are precise and local.
-- **Review before merge:** every change gets an independent review, and the reviewer is never the author. Fix rounds loop until the review is CLEAN.
+- **Review before merge:** every lane's completed work gets an independent reviewer (§3) that is neither the author nor the orchestrator. Fix rounds loop until the verdict is CLEAN.
 - **DeepSeek and GLM run only in linked worktrees with no `.env` files;** `model-relay` refuses anything else. Never send external models secrets, credentials, customer or contact data, or exports.
-- **If Codex is not installed,** use a Sonnet reviewer following `$K/rules/REVIEW_RULES.md`.
 - **Tell the user the tier:** in status summaries, show each task's tier and assigned model.
 
 ## 3. Dispatch
 
 - **Worktree:** `$K/lane/new-worktree.sh <branch> [base]` creates `<repo>/.claude/worktrees/<branch>` and wires JS monorepo `node_modules` so workspace packages resolve to the worktree.
 - **Registry:** add or replace the lane's row in `$S/lanes.tsv`: lane, agent, task, worktree, relay job.
-- **Brief:** start from `$K/rules/brief-template.md` and keep it short and complete. State inputs, exact file ownership, acceptance checks, tests, token/output cap, and a stop condition. Give the worker a completed boundary; start a fresh worker when prior history no longer helps. For Claude agents, reference `$K/rules/LANE_RULES.md`. For DeepSeek and GLM, paste it.
+- **Brief:** start from `$K/rules/brief-template.md` and keep it short and complete. State inputs, exact file ownership, acceptance checks, tests, token/output cap, and a stop condition. Write the owned paths, one per line (a trailing `/` owns a directory), to `$S/lanes/<lane>/owned.txt`, and the acceptance-check commands to `$S/lanes/<lane>/checks.sh`; the reviewer uses both. Give the worker a completed boundary; start a fresh worker when prior history no longer helps. For Claude agents, reference `$K/rules/LANE_RULES.md`. For DeepSeek and GLM, paste it.
 - **T3 and T2 lanes:** `Agent` with `subagent_type: opus-lane` (T3) or `sonnet-lane` (T2). Until Claude Code restarts after install, use a plain `Agent` with model opus or sonnet.
 - **T1 lanes (DeepSeek, or GLM for simple bounded work), preferred from the orchestrator:** Bash with `run_in_background: true`:
   `cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < $S/lanes/<lane>/brief.md` (or `glm`, per the T1 model choice in §2). It costs no Claude tokens, and you are notified on completion. If the output says STILL RUNNING, run `model-relay --wait <job>`.
-- **Codex review, preferred from the orchestrator:** Bash with `run_in_background: true`:
-  `cd <worktree> && RELAY_WAIT_S=6000 codex-review <base-ref> < checklist.md`. The checklist is 3–10 task-specific lines, authority first.
+- **Independent review, on every lane completion event:** dispatch one reviewer per completed lane; independent lanes are reviewed in parallel. Give it the worktree, base ref, `owned.txt`, tracker id, acceptance checks, and the lane's report path. It follows `$K/rules/REVIEW_RULES.md` and returns a TASK/REVISION/SCOPE/CHECKS/FINDINGS/VERDICT block.
+  - Claude Code: `Agent` with `subagent_type: lane-reviewer` (Opus 5.5, medium effort). Until restart, a plain `Agent` with model opus whose prompt says to follow REVIEW_RULES.md.
+  - Codex: Bash with `run_in_background: true`: `cd <worktree> && RELAY_WAIT_S=6000 codex-review <base-ref> $S/lanes/<lane>/owned.txt < checklist.md` (gpt-5.6-terra, medium effort). It runs `checks.sh` outside Codex's read-only sandbox, where test runners cannot write temp files, and passes the result in. The checklist is 3–10 task-specific lines, authority first.
 - **Subagents** (`deepseek`, `glm`, `codex`) are guarded haiku relays. Use them when a Task-tool call is more convenient. Give them the worktree path and the full brief or checklist.
 - Every worker returns a 10–12-line summary; full evidence stays in `<scratch>/report.md`. Routine tool-result payloads target 1,000–2,000 tokens. Read full evidence only when a decision needs it.
-- **Verify who did the work:** every relay run leaves `~/.local/state/model-relay.*` or `~/.local/state/codex-review.*` with `engine`/`model`, `cwd`, `rc` and output. The `model:` line comes from real usage data. DeepSeek and GLM call themselves "Claude"; ignore that.
+- **Verify who did the work:** every relay run leaves `~/.local/state/model-relay.*` or `~/.local/state/codex-review.*` with `engine`/`model`, `cwd`, `rc` and output. The `model:` line comes from real usage data. DeepSeek and GLM call themselves "Claude", and Codex reviewers misname themselves in REVIEWER; trust the relay's recorded model and effort, not self-reports.
 
 ## 4. Per-task flow
 
@@ -65,8 +65,8 @@ Copy this checklist into the lane's tracker note and tick items as they complete
 ```text
 - [ ] 1. Triage: tier and lane model recorded
 - [ ] 2. Dev in worktree; completion event received
-- [ ] 3. Deterministic reconciliation check passed
-- [ ] 4. Independent review; fix rounds until CLEAN
+- [ ] 3. Independent reviewer dispatched (§3); verdict received
+- [ ] 4. Verdict CLEAN, and its REVISION equals the lane's `git rev-parse HEAD`
 - [ ] 5. Integrate in the main worktree
 - [ ] 6. Required checks pass
 - [ ] 7. Tracker item closed with evidence (SHA, hashes, counts, unchanged files)
@@ -75,7 +75,11 @@ Copy this checklist into the lane's tracker note and tick items as they complete
 - [ ] 10. Refill from the ready queue
 ```
 
-- **Step 3 or 4 fails:** return to step 2 in the same worktree with the findings. After the second failed review, re-tier (§2) before returning.
+- **Step 4, act on the verdict (do not re-review):**
+  - CLEAN with a matching REVISION: go to step 5.
+  - CLEAN with a different REVISION, a missing block, or a failed reviewer run: no verdict. Return to step 3 with a fresh reviewer.
+  - FIX: send the FINDINGS verbatim to the same lane: the same Agent handle if it is still live, otherwise a fresh worker of the same tier in the same worktree; for T1, re-run `model-relay` with a remediation brief. Then return to step 2. The re-review in step 3 covers the new revision.
+  - After the second FIX for one task, re-tier (§2) before returning to step 2.
 - **Step 5:** `git merge --no-ff --no-edit <branch>` on the main worktree; record the merge SHA in the tracker. On a conflict, `git merge --abort`, then return to step 2 to rebase the lane onto the main branch.
 - **Step 6 fails:** `git revert --no-edit -m 1 <merge-sha>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
 - **Step 8:** run `git worktree remove <path>` (never `--force`), then `git branch -d <branch>`. If either refuses (dirty worktree or unmerged branch), stop and report it; use `git branch -D` only when `git cherry <main-branch> <branch>` prints no `+` lines (every commit already integrated).
@@ -92,7 +96,7 @@ On the main worktree, do only orchestration, planning, and integration. Stage ex
 
 ## 5. Token discipline
 
-- **Completion events:** use worker/relay completion notifications and recorded exit status. Do not repeatedly scan all lanes for progress. From the brief's base SHA and owned-path list, run one deterministic final check that hashes changed files, counts required checks, confirms other owned paths stayed unchanged, and confirms no out-of-scope paths changed. Return failures and totals only. Use `lane-status.sh` once at startup or when a specific inconsistency needs investigation.
+- **Completion events:** use worker/relay completion notifications and recorded exit status. Do not repeatedly scan all lanes for progress. A completion event triggers the reviewer (§3); the deterministic scope check (`lane/scope-check.sh`) runs inside that review, not in the orchestrator. Use `lane-status.sh` once at startup or when a specific inconsistency needs investigation.
 - **Compact evidence:** worker summaries are 10–12 lines. Routine tool results should be capped at 1,000–2,000 tokens. Keep detailed reports on disk and read them only to resolve a decision or failure.
 - **Usage ledger:** append one row per task to `$S/usage.tsv`: task/lane, model, input tokens, cached-input tokens, output tokens, failures/retries, acceptance (`accepted`, `rejected`, or `pending`), and evidence path. Use provider-reported usage; mark unavailable fields `n/a`, never estimate them as observed facts. Default task ceilings (fresh plus cached input / output): structural or draft 2,000/500 tokens; routine 12,000/4,000; moderate 24,000/8,000. State the cap in the brief; stop and rebrief if reached. A larger cap needs a short reason. Keep brief-draft outputs at or below 500 tokens.
 - **Watchdog:** runs from a timer (`install.sh --watchdog`), not a session cron.

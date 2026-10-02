@@ -39,6 +39,44 @@ python3 "$K/bin/relay-spawn" "$T/rc2" 1 /dev/null "$T/o2" "$T/o2" sleep 5; check
 python3 "$K/bin/relay-spawn" "$T/rc3" 10 /dev/null "$T/o3" "$T/o3" no-such-cmd-xyz; check "spawn records 127 for a missing command" 127 "$(cat "$T/rc3")"
 check "no relay script depends on setsid or timeout" 0 "$(grep -lE '\b(setsid|timeout [0-9])' "$K/bin/model-relay" "$K/bin/codex-review" | wc -l)"
 
+# scope-check: the reviewer's deterministic gate must fail on out-of-scope or uncommitted changes.
+cd "$T/wt" && printf 'f.txt\n' > "$T/owned"
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check passes owned, committed changes" 0 $?
+mkdir -p src && echo y > src/a.txt && git add src/a.txt && git commit -q -m stray
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check fails an out-of-scope path" 1 $?
+printf 'f.txt\nsrc/\n' > "$T/owned"
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check accepts an owned directory" 0 $?
+echo dirty >> f.txt
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check fails uncommitted work (unreviewable revision)" 1 $?
+git checkout -q f.txt
+mkdir -p .serena && echo x > .serena/project.yml
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check ignores Serena tool state (written by reviewers' tooling)" 0 $?
+echo y > stray.txt
+bash "$K/lane/scope-check.sh" main "$T/owned" >/dev/null 2>&1; check "scope-check still fails other untracked files" 1 $?
+rm -rf .serena stray.txt
+bash "$K/lane/scope-check.sh" main >/dev/null 2>&1; check "scope-check without an owned list is a usage error" 2 $?
+
+# codex-review: the verdict must name the exact revision reviewed, so the orchestrator never integrates an unreviewed SHA.
+J="$T/job"; mkdir -p "$J"; echo 0 > "$J/rc"; echo gpt-5.6-terra > "$J/model"; echo medium > "$J/effort"; echo main > "$J/base"; echo "$T/wt" > "$J/cwd"
+echo 0123456789abcdef0123456789abcdef01234567 > "$J/revision"; echo "VERDICT: CLEAN" > "$J/out.md"
+out=$(bash "$K/bin/codex-review" --wait "$J" 2>&1)
+check "codex-review reports the reviewed revision" 1 "$(printf '%s' "$out" | grep -c 'revision=0123456789abcdef0123456789abcdef01234567')"
+check "codex-review default model is gpt-5.6-terra" 1 "$(grep -c 'CODEX_MODEL:-gpt-5.6-terra' "$K/bin/codex-review")"
+check "guard allows codex-review with an owned-paths file" 0 "$(guard codex "cd /tmp/wt && codex-review main /tmp/s/owned.txt <<'CHECKLIST'${NL}t${NL}CHECKLIST")"
+
+# codex-review must run the lane checks itself: Codex's read-only sandbox has no writable temp dir, so pytest
+# and most test runners crash inside it and every lane would loop on FIX. A fake codex echoes the prompt it received.
+mkdir -p "$T/fakebin" "$T/lanedir"; cat > "$T/fakebin/codex" <<'FAKE'
+#!/usr/bin/env bash
+while [ $# -gt 1 ]; do [ "$1" = --output-last-message ] && out=$2; shift; done; printf '%s\n' "$1" > "$out"
+FAKE
+chmod +x "$T/fakebin/codex"; printf 'f.txt\n' > "$T/lanedir/owned.txt"; printf 'echo CHECK-RAN; exit 3\n' > "$T/lanedir/checks.sh"
+cd "$T/wt" && git reset -q --hard HEAD~1 && git clean -qfd
+out=$(PATH="$T/fakebin:$K/bin:$PATH" LANES_HOME="$K" RELAY_WAIT_S=30 bash "$K/bin/codex-review" main "$T/lanedir/owned.txt" <<< "check it" 2>&1)
+check "codex-review runs checks.sh outside the sandbox" yes "$(printf '%s' "$out" | grep -q 'CHECK-RAN' && echo yes)"
+check "the reviewer prompt carries the check result" yes "$(printf '%s' "$out" | grep -q 'already run outside your sandbox; exit=3' && echo yes)"
+check "codex-review reports the check exit code" 1 "$(printf '%s' "$out" | grep -c 'CHECKS: checks.sh exit=3')"
+
 # lane-env: the portable hash must keep existing Linux state dirs at the same path.
 want="$HOME/.local/state/lanes/repo-$(python3 -c 'import hashlib,sys;print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:8])' "$T/repo")"
 cd "$T/repo" && check "state dir path unchanged" "$want" "$(. "$K/lane/lane-env.sh"; lanes_state)"; rmdir "$want" 2>/dev/null
