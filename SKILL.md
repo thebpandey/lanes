@@ -51,7 +51,8 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 - **T3 and T2 lanes:** `Agent` with `subagent_type: opus-lane` (T3) or `sonnet-lane` (T2). Until Claude Code restarts after install, use a plain `Agent` with model opus or sonnet.
 - **T1 lanes (DeepSeek, or GLM for simple bounded work), preferred from the orchestrator:** Bash with `run_in_background: true`:
   `cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < $S/lanes/<lane>/brief.md` (or `glm`, per the T1 model choice in §2). It costs no Claude tokens, and you are notified on completion. If the output says STILL RUNNING, run `model-relay --wait <job>`.
-- **Independent review, on every lane completion event:** dispatch one reviewer per completed lane; independent lanes are reviewed in parallel. Give it the worktree, base ref, `owned.txt`, tracker id, acceptance checks, and the lane's report path. It follows `$K/rules/REVIEW_RULES.md` and returns a TASK/REVISION/SCOPE/CHECKS/FINDINGS/VERDICT block.
+- **Classify, on every lane completion event:** from the main worktree run `bash $K/lane/integrate.sh --classify $S/lanes/<lane> <branch>`. TRIVIAL (prose-only, ≤ 40 lines, no deletes, no agent-instruction, control or legal files) goes straight to step 5 of §4 with no review. Anything else is REVIEW; never override the class.
+- **Independent review, for every REVIEW lane:** dispatch one reviewer per completed lane; independent lanes are reviewed in parallel. Give it the worktree, base ref, `owned.txt`, tracker id, acceptance checks, and the lane's report path. It follows `$K/rules/REVIEW_RULES.md`, returns a TASK/REVISION/SCOPE/CHECKS/FINDINGS/VERDICT block, and saves it to `$S/lanes/<lane>/review.md`. Only the reviewer writes that file; never write or edit it yourself.
   - Claude Code: `Agent` with `subagent_type: lane-reviewer` (Opus 5.5, medium effort). Until restart, a plain `Agent` with model opus whose prompt says to follow REVIEW_RULES.md.
   - Codex: Bash with `run_in_background: true`: `cd <worktree> && RELAY_WAIT_S=6000 codex-review <base-ref> $S/lanes/<lane>/owned.txt < checklist.md` (gpt-5.6-terra, medium effort). It runs `checks.sh` outside Codex's read-only sandbox, where test runners cannot write temp files, and passes the result in. The checklist is 3–10 task-specific lines, authority first.
 - **Subagents** (`deepseek`, `glm`, `codex`) are guarded haiku relays. Use them when a Task-tool call is more convenient. Give them the worktree path and the full brief or checklist.
@@ -65,9 +66,9 @@ Copy this checklist into the lane's tracker note and tick items as they complete
 ```text
 - [ ] 1. Triage: tier and lane model recorded
 - [ ] 2. Dev in worktree; completion event received
-- [ ] 3. Independent reviewer dispatched (§3); verdict received
-- [ ] 4. Verdict CLEAN, and its REVISION equals the lane's `git rev-parse HEAD`
-- [ ] 5. Integrate in the main worktree
+- [ ] 3. Classified (§3); if REVIEW, independent reviewer dispatched and review.md saved
+- [ ] 4. TRIVIAL, or verdict CLEAN with REVISION equal to the lane head
+- [ ] 5. Integrated with `integrate.sh` (exit 0, MERGED line recorded)
 - [ ] 6. Required checks pass
 - [ ] 7. Tracker item closed with evidence (SHA, hashes, counts, unchanged files)
 - [ ] 8. Worktree and branch removed
@@ -76,12 +77,14 @@ Copy this checklist into the lane's tracker note and tick items as they complete
 ```
 
 - **Step 4, act on the verdict (do not re-review):**
-  - CLEAN with a matching REVISION: go to step 5.
+  - TRIVIAL, or CLEAN with a matching REVISION: go to step 5.
   - CLEAN with a different REVISION, a missing block, or a failed reviewer run: no verdict. Return to step 3 with a fresh reviewer.
   - FIX: send the FINDINGS verbatim to the same lane: the same Agent handle if it is still live, otherwise a fresh worker of the same tier in the same worktree; for T1, re-run `model-relay` with a remediation brief. Then return to step 2. The re-review in step 3 covers the new revision.
   - After the second FIX for one task, re-tier (§2) before returning to step 2.
-- **Step 5:** `git merge --no-ff --no-edit <branch>` on the main worktree; record the merge SHA in the tracker. On a conflict, `git merge --abort`, then return to step 2 to rebase the lane onto the main branch.
-- **Step 6 fails:** `git revert --no-edit -m 1 <merge-sha>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
+- **Step 5:** `bash $K/lane/integrate.sh $S/lanes/<lane> <branch>` from the main worktree is the only way to merge lane work; never run `git merge` for a lane yourself. It re-checks scope and class, requires a CLEAN review.md for the exact head unless TRIVIAL, merges with `--no-ff`, and logs the merge SHA in `$S/lanes/<lane>/integration.log`.
+  - Exit 1 (refused): act on the printed reason. No or stale review returns to step 3; a scope failure returns to step 2.
+  - Exit 3 (conflict, already aborted): return to step 2 to rebase the lane onto the main branch.
+- **Step 6 fails:** `git revert --no-edit -m 1 <merge-sha from integration.log>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
 - **Step 8:** run `git worktree remove <path>` (never `--force`), then `git branch -d <branch>`. If either refuses (dirty worktree or unmerged branch), stop and report it; use `git branch -D` only when `git cherry <main-branch> <branch>` prints no `+` lines (every commit already integrated).
 - **Step 9:** only with push authorization. The scan must exit 0 first (1 = leaks, 2 = scanner or range problem); any non-zero exit blocks the push and goes to the user:
 

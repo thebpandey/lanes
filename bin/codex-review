@@ -10,6 +10,8 @@ WAIT_S=${RELAY_WAIT_S:-540}; LK=${LANES_HOME:-$HOME/.claude/skills/lanes}; RULES
 finish() { local j=$1; echo "exit=$(cat "$j/rc") model=$(cat "$j/model") effort=$(cat "$j/effort") base=$(cat "$j/base") revision=$(cat "$j/revision" 2>/dev/null || echo unknown) dir=$(cat "$j/cwd")"
   [ -s "$j/scope" ] && tail -1 "$j/scope"; [ -f "$j/checks.rc" ] && echo "CHECKS: checks.sh exit=$(cat "$j/checks.rc")"
   [ -f "$j/checks.out" ] && tail -5 "$j/checks.out"
+  # The verdict goes beside owned.txt, where lane/integrate.sh requires it before merging.
+  [ -s "$j/lanedir" ] && [ -s "$j/out.md" ] && cp "$j/out.md" "$(cat "$j/lanedir")/review.md"
   if [ -s "$j/out.md" ]; then echo "VERDICT:"; head -c 4000 "$j/out.md"; else echo "no verdict; log tail:"; tail -8 "$j/log"; fi; }
 wait_job() { local j=$1 t=0; while [ ! -f "$j/rc" ] && [ $t -lt "$WAIT_S" ]; do sleep 5; t=$((t+5)); done
   if [ -f "$j/rc" ]; then finish "$j"; else echo "STILL RUNNING after ${WAIT_S}s. Continue with exactly: codex-review --wait $j"; fi; }
@@ -22,6 +24,7 @@ job=$(mktemp -d "$HOME/.local/state/codex-review.XXXXXX"); cat > "$job/checklist
 pwd > "$job/cwd"; echo "$base" > "$job/base"; echo "${CODEX_MODEL:-gpt-5.6-terra}" > "$job/model"; git rev-parse HEAD > "$job/revision"
 # Exit 1 (scope FAIL) is a result the reviewer must report, not an error, so the status is not checked here.
 [ -z "$owned" ] || bash "$LK/lane/scope-check.sh" "$base" "$owned" > "$job/scope" 2>&1
+[ -z "$owned" ] || dirname "$(readlink -f "$owned")" > "$job/lanedir"
 checks="$(dirname "${owned:-/nonexistent}")/checks.sh"
 [ -z "$owned" ] || [ ! -f "$checks" ] || relay-spawn "$job/checks.rc" 900 /dev/null "$job/checks.out" "$job/checks.out" bash "$checks"
 effort=${CODEX_EFFORT:-medium}; case "$effort" in medium|high) ;; *) echo "CODEX_EFFORT must be medium or high" >&2; exit 2;; esac

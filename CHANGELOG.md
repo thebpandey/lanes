@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- New `lane/integrate.sh`, the only merge path: it refuses lane work without a CLEAN `review.md` for the exact lane head, re-runs the scope check, merges with `--no-ff`, aborts on conflict (exit 3), and logs each merge. Review-gating moves from instruction to code.
+- Trivial work skips review, decided by the script (`--classify`): prose files only (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`), at most 40 changed lines, no deletes or renames, no agent-instruction (`AGENTS.md`, `CLAUDE.md`, `SKILL.md`, …), control (`.claude/`, `.github/`, …) or legal files. The scope check still applies.
+- Reviewers save their verdict to `$S/lanes/<lane>/review.md`; `codex-review` does this automatically.
 - The orchestrator no longer reviews lane work. Every lane completion goes to an independent reviewer: the new `lane-reviewer` agent (Opus 5.5, medium) in Claude Code, or `codex-review` with `gpt-5.6-terra` (new default, medium) in Codex. The orchestrator integrates only a CLEAN verdict whose REVISION equals the lane HEAD and sends FIX findings back to the same lane.
 - New `lane/scope-check.sh` replaces the prose-only reconciliation check (out-of-scope paths, uncommitted work, file hashes); the reviewer runs it, and `codex-review <base> <owned.txt>` runs it automatically.
 - `codex-review` runs the lane's `checks.sh` outside Codex's read-only sandbox (which has no writable temp dir, so pytest crashed and every Codex review returned FIX) and passes the result to the reviewer. `scope-check.sh` ignores untracked `.serena/` state that tooling creates when it opens a worktree.

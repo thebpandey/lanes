@@ -411,7 +411,7 @@ footer p{margin:0}
     </table>
     <p class="routes-note" id="routes-note">Recommended orchestration defaults are Codex Sol at medium effort and Claude Opus 5.5 at medium effort. Use high effort only for legal meaning, security, difficult defects and final acceptance. Each task brief states a token cap; short drafts stop at 500 output tokens. Record input, cached input, output, failures and acceptance in the lane usage ledger. Completion events trigger an independent review instead of repeated status scans. Model overrides: <code>DEEPSEEK_MODEL</code>, <code>GLM_MODEL</code>, <code>CODEX_MODEL</code>, <code>CODEX_EFFORT</code>.</p>
     <ul class="gates">
-      <li><strong>Review before merge</strong>Every lane gets an independent reviewer, never the orchestrator. FIX findings go back to the same lane; only a CLEAN verdict for the current revision is integrated.</li>
+      <li><strong>Review before merge</strong>Every lane gets an independent reviewer, never the orchestrator. FIX findings go back to the same lane. <code>lane/integrate.sh</code> is the only merge path and refuses anything without a CLEAN verdict for the current revision; only small prose edits it classifies as trivial skip review.</li>
       <li><strong>Workers stay in worktrees</strong><code>model-relay</code> refuses the main checkout and any worktree holding <code>.env</code> files.</li>
       <li><strong>Either host reviews.</strong>Claude Code uses <code>lane-reviewer</code>; Codex uses <code>codex-review</code>.</li>
     </ul>

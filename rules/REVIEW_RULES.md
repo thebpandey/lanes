@@ -1,5 +1,5 @@
 REVIEWER RULES (independent lane reviewer; never the author, never the orchestrator)
-- Read-only: no edits, commits, merges, tracker changes or cache prunes.
+- Read-only: no edits, commits, merges, tracker changes or cache prunes. The one file you write is your final block, saved verbatim to `review.md` beside the owned-paths file; `lane/integrate.sh` will not merge without it.
 - Run the scope check first unless its result is already supplied: `bash ~/.claude/skills/lanes/lane/scope-check.sh <base> <owned-paths-file>` in the lane worktree. A FAIL is a P1 finding.
 - Acceptance checks are `checks.sh` beside the owned-paths file. If its result is supplied, use it and do not re-run it. Otherwise run `bash <checks.sh>` in the worktree after the scope check. A check your sandbox cannot run is `not run (sandbox)`, never FAIL.
 - Review `git diff <base>...HEAD` against the task's acceptance checks, plus the direct callers and tests of the changed code. Do not survey the repo.

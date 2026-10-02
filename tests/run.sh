@@ -76,6 +76,49 @@ out=$(PATH="$T/fakebin:$K/bin:$PATH" LANES_HOME="$K" RELAY_WAIT_S=30 bash "$K/bi
 check "codex-review runs checks.sh outside the sandbox" yes "$(printf '%s' "$out" | grep -q 'CHECK-RAN' && echo yes)"
 check "the reviewer prompt carries the check result" yes "$(printf '%s' "$out" | grep -q 'already run outside your sandbox; exit=3' && echo yes)"
 check "codex-review reports the check exit code" 1 "$(printf '%s' "$out" | grep -c 'CHECKS: checks.sh exit=3')"
+check "codex-review saves its verdict beside owned.txt for integrate.sh" yes "$([ -s "$T/lanedir/review.md" ] && echo yes)"
+
+# integrate.sh: the only merge path. Unreviewed non-trivial work must never reach the main branch.
+I="$T/int"; git init -q -b main "$I/repo" && cd "$I/repo" && printf 'line\n' > README.md && printf 'x = 1\n' > app.py \
+  && git add . && git commit -q -m base
+lane() { # lane <name> <file> <content> [owned]; creates a committed lane worktree and its lane dir
+  git -C "$I/repo" worktree add -q -b "$1" "$I/$1" main && printf '%s\n' "$3" >> "$I/$1/$2" && git -C "$I/$1" add -A && git -C "$I/$1" commit -q -m "$1"
+  mkdir -p "$I/s/$1"; printf '%s\n' "${4:-$2}" > "$I/s/$1/owned.txt"; }
+integ() { (cd "$I/repo" && bash "$K/lane/integrate.sh" "$@" >/dev/null 2>&1); echo $?; }
+cls() { (cd "$I/repo" && bash "$K/lane/integrate.sh" --classify "$@" 2>/dev/null | tail -1); }
+merges() { git -C "$I/repo" rev-list --count --merges main; }
+
+lane docfix README.md "typo fixed"
+check "classify: small prose edit is TRIVIAL" TRIVIAL "$(cls "$I/s/docfix" docfix)"
+lane code app.py "y = 2"
+check "classify: any code change needs review" REVIEW "$(cls "$I/s/code" code)"
+lane bigdoc README.md "$(seq 1 41)"
+check "classify: prose over 40 lines needs review" REVIEW "$(cls "$I/s/bigdoc" bigdoc)"
+lane agentdoc AGENTS.md "always push"
+check "classify: agent instruction files need review" REVIEW "$(cls "$I/s/agentdoc" agentdoc)"
+git -C "$I/repo" worktree add -q -b rmdoc "$I/rmdoc" main && git -C "$I/rmdoc" rm -q README.md && git -C "$I/rmdoc" commit -q -m rm \
+  && mkdir -p "$I/s/rmdoc" && echo README.md > "$I/s/rmdoc/owned.txt"
+check "classify: deletions need review" REVIEW "$(cls "$I/s/rmdoc" rmdoc)"
+
+check "refuses unreviewed code" 1 "$(integ "$I/s/code" code)"
+check "refusal leaves the main branch unmerged" 0 "$(merges)"
+printf 'TASK: T\nREVISION: 0000000000000000000000000000000000000000\nVERDICT: CLEAN\n' > "$I/s/code/review.md"
+check "refuses a CLEAN verdict for another revision" 1 "$(integ "$I/s/code" code)"
+printf 'TASK: T\nREVISION: %s\nVERDICT: FIX\n' "$(git -C "$I/code" rev-parse HEAD)" > "$I/s/code/review.md"
+check "refuses a FIX verdict" 1 "$(integ "$I/s/code" code)"
+printf 'TASK: T\nREVISION: %s\nVERDICT: CLEAN\n' "$(git -C "$I/code" rev-parse HEAD)" > "$I/s/code/review.md"
+check "merges a CLEAN verdict for the exact revision" 0 "$(integ "$I/s/code" code)"
+check "the merge is a real merge commit" 1 "$(merges)"
+check "integration is logged as reviewed" 1 "$(grep -c ' reviewed ' "$I/s/code/integration.log" 2>/dev/null)"
+check "merges a trivial prose edit without review" 0 "$(integ "$I/s/docfix" docfix)"
+check "integration is logged as trivial" 1 "$(grep -c ' trivial ' "$I/s/docfix/integration.log" 2>/dev/null)"
+lane stray README.md "small" "app.py"
+check "scope failure blocks even trivial work" 1 "$(integ "$I/s/stray" stray)"
+lane clash README.md "conflict A"; lane clash2 README.md "conflict B"
+integ "$I/s/clash" clash >/dev/null
+check "a conflict aborts and exits 3" 3 "$(integ "$I/s/clash2" clash2)"
+check "an aborted conflict leaves no merge in progress" no "$([ -f "$I/repo/.git/MERGE_HEAD" ] && echo yes || echo no)"
+check "refuses to run outside the main worktree" 2 "$(cd "$I/code" && bash "$K/lane/integrate.sh" "$I/s/code" code >/dev/null 2>&1; echo $?)"
 
 # lane-env: the portable hash must keep existing Linux state dirs at the same path.
 want="$HOME/.local/state/lanes/repo-$(python3 -c 'import hashlib,sys;print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:8])' "$T/repo")"

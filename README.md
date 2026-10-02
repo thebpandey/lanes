@@ -22,7 +22,7 @@
 2. Each brief names the task inputs and completed boundary, exact file ownership, acceptance checks, token limits and stop condition.
 3. Workers implement only in assigned worktrees. DeepSeek and GLM receive simple, bounded tasks only; neither receives secrets or private data.
 4. Completion events replace repeated status scans. Each completed lane goes to an independent reviewer (Opus 5.5 at medium effort in Claude Code, `gpt-5.6-terra` at medium in Codex), never to the orchestrator. The reviewer runs `lane/scope-check.sh` (changed-file hashes, out-of-scope paths, uncommitted work) and returns a revision-bound CLEAN or FIX verdict.
-5. The orchestrator acts on the verdict: CLEAN for the lane's current revision is integrated; FIX findings go back to the same lane, and the new revision is reviewed again. The main worktree is for orchestration, planning, integration and `session-detail` archives before context compaction.
+5. The orchestrator acts on the verdict: CLEAN for the lane's current revision is integrated; FIX findings go back to the same lane, and the new revision is reviewed again. `lane/integrate.sh` is the only merge path and refuses unreviewed work. Trivial prose edits (≤ 40 lines of `.md`/`.txt`-style files, no deletes, no agent-instruction, control or legal files) skip review; the script decides, not the orchestrator. The main worktree is for orchestration, planning, integration and `session-detail` archives before context compaction.
 
 ## Model and effort routing
 
@@ -65,6 +65,7 @@ Direct commands:
 cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < brief.md  # or glm for a simple bounded task
 cd <worktree> && RELAY_WAIT_S=6000 codex-review main owned.txt < checklist.md   # Codex lane review
 ~/.claude/skills/lanes/lane/scope-check.sh <base> owned.txt   # the reviewer's scope gate; checks.sh beside owned.txt holds the acceptance checks
+~/.claude/skills/lanes/lane/integrate.sh [--classify] <lane-dir> <branch>   # from the main worktree; the only merge path
 ~/.claude/skills/lanes/lane/new-worktree.sh <branch>
 ~/.claude/skills/lanes/lane/lane-status.sh
 ~/.claude/skills/lanes/lane/secret-scan.sh <base> [head]  # required before any push; exit 0 = clean
