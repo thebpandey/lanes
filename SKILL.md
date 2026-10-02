@@ -1,6 +1,6 @@
 ---
 name: lanes
-description: Use when coordinating parallel software work in Git worktrees, including starting or resuming lanes, dispatching bounded tasks, reviewing integration, or reporting lane status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
+description: 'Use when coordinating parallel software work in Git worktrees, including starting or resuming lanes, dispatching bounded tasks, reviewing integration, or reporting lane status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".'
 metadata:
   intended_model: opus
 ---
@@ -117,3 +117,9 @@ On the main worktree, do only orchestration, planning, and integration. Stage ex
 - **Resume:** subagents do not survive a session restart. Dispatch new ones into the SAME worktrees, telling them to continue the existing work. Reattach relay jobs with `model-relay --wait` or `codex-review --wait`.
 
 Ask the user before anything outward-facing or hard to undo: pushes (unless pre-approved), deploys, external writes or sends, deleting branches with unmerged work, history rewrites. Ask one question per message.
+
+## Additional reference files
+
+These files are also linked from other references. They are listed here so each one is one level from this file.
+
+- [`rules/REVIEW_RULES.md`](rules/REVIEW_RULES.md), used by `CODEX.md`
