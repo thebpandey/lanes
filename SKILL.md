@@ -1,6 +1,8 @@
 ---
 name: lanes
 description: Use when coordinating parallel software work in Git worktrees, including starting or resuming lanes, dispatching bounded tasks, reviewing integration, or reporting lane status. Triggers: "/lanes", "lanes start", "resume the lanes", "lane update", "lane update all", "pause lanes", "set up the lanes harness".
+metadata:
+  intended_model: opus
 ---
 
 # Lanes: orchestration harness
@@ -58,7 +60,31 @@ Before dispatching, give every task a **tier**, and record it in the tracker and
 
 ## 4. Per-task flow
 
-triage (tier → lane model) → dev in worktree → completion event → one deterministic reconciliation check → independent review → fix rounds until CLEAN → integrate in the main worktree → run required checks → close the tracker item with evidence (SHA, hashes, counts, unchanged files) → remove the worktree and branch → push only if authorized (run the secret scan first, and only fast-forward) → refill from the ready queue.
+Copy this checklist into the lane's tracker note and tick items as they complete:
+
+```text
+- [ ] 1. Triage: tier and lane model recorded
+- [ ] 2. Dev in worktree; completion event received
+- [ ] 3. Deterministic reconciliation check passed
+- [ ] 4. Independent review; fix rounds until CLEAN
+- [ ] 5. Integrate in the main worktree
+- [ ] 6. Required checks pass
+- [ ] 7. Tracker item closed with evidence (SHA, hashes, counts, unchanged files)
+- [ ] 8. Worktree and branch removed
+- [ ] 9. Pushed (only if authorized)
+- [ ] 10. Refill from the ready queue
+```
+
+- **Step 3 or 4 fails:** return to step 2 in the same worktree with the findings.
+- **Step 6 fails:** `git revert --no-edit <integration-commit>` on the main worktree, return to step 2 in the lane worktree with the failing output, then repeat steps 3 to 6.
+- **Step 8:** run `git worktree remove <path>` (never `--force`), then `git branch -d <branch>`. If either refuses (dirty worktree or unmerged branch), stop and report it; use `git branch -D` only when the tracker records that the branch's exact changes are already integrated.
+- **Step 9:** only with push authorization. The scan must exit 0 first; any non-zero exit blocks the push and goes to the user:
+
+  ```sh
+  bash $K/lane/secret-scan.sh "$(git merge-base HEAD origin/<branch>)" HEAD && git push origin <branch>
+  ```
+
+  Never pass `--force`; a rejected non-fast-forward push is reported, not overridden.
 
 On the main worktree, do only orchestration, planning, and integration. Stage explicit paths only. Preserve local edits: never `commit -a`, overwrite, or revert them. If a merge touches a file with local edits, preserve the diff, integrate, then re-apply it.
 
@@ -68,7 +94,7 @@ On the main worktree, do only orchestration, planning, and integration. Stage ex
 - **Compact evidence:** worker summaries are 10–12 lines. Routine tool results should be capped at 1,000–2,000 tokens. Keep detailed reports on disk and read them only to resolve a decision or failure.
 - **Usage ledger:** append one row per task to `$S/usage.tsv`: task/lane, model, input tokens, cached-input tokens, output tokens, failures/retries, acceptance (`accepted`, `rejected`, or `pending`), and evidence path. Use provider-reported usage; mark unavailable fields `n/a`, never estimate them as observed facts. Default task ceilings (fresh plus cached input / output): structural or draft 2,000/500 tokens; routine 12,000/4,000; moderate 24,000/8,000. State the cap in the brief; stop and rebrief if reached. A larger cap needs a short reason. Keep brief-draft outputs at or below 500 tokens.
 - **Watchdog:** runs from a timer (`install.sh --watchdog`), not a session cron.
-- **Context compaction:** before the first context compaction in each session, create one full archive with the `session-detail` skill. Before each later compaction in that session, create one incremental archive using the verified checkpoint from the previous archive. Include the current session identity and covered position so the next boundary can be verified. Do not compact until the report is saved. Keep current Beads constraints and recovery pointers in the archive; follow `session-detail` format and privacy rules.
+- **Context compaction:** before the first context compaction in each session, create one full archive with the `session-detail` skill. Before each later compaction in that session, create one incremental archive using the verified checkpoint from the previous archive. Include the current session identity and covered position so the next boundary can be verified. `session-detail` prints to chat in Claude Code and writes no file, so write the printed archive verbatim to `$S/sessions/<its suggested filename>` yourself. Do not compact until that file exists. Keep current Beads constraints and recovery pointers in the archive; follow `session-detail` format and privacy rules.
 - **Restarts:** restart the orchestrator session at quiet points. Before restarting, write a pause note per active lane in the tracker: worktree, SHA, uncommitted work, and next step.
 - **Relay scripts:** never edit them in place while jobs run. Re-run `install.sh`, which replaces them atomically.
 

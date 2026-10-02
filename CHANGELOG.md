@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add `lane/secret-scan.sh` (gitleaks over the pushed range) as the required pre-push gate; `install.sh --check` reports gitleaks.
+- Turn the per-task flow into a checklist with loop-backs for failed reconciliation, review, and post-integration checks.
+- Define safe worktree and branch removal (no `--force`; `branch -d` before `-D`).
+- Write the session-detail archive to `$S/sessions/` before compaction, since session-detail only prints in Claude Code.
+
 ## 0.1.0 — 2026-10-01
 
 Initial versioned release of the refreshed lanes workflow.

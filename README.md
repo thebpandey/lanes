@@ -65,6 +65,7 @@ cd <worktree> && RELAY_WAIT_S=6000 model-relay deepseek < brief.md  # or glm for
 cd <worktree> && RELAY_WAIT_S=6000 CODEX_EFFORT=high codex-review main < checklist.md
 ~/.claude/skills/lanes/lane/new-worktree.sh <branch>
 ~/.claude/skills/lanes/lane/lane-status.sh
+~/.claude/skills/lanes/lane/secret-scan.sh <base> [head]  # required before any push; exit 0 = clean
 ```
 
 `CODEX_MODEL` selects the review model (default `gpt-6.1-sol`); `CODEX_EFFORT` selects `medium` or `high`. Use high effort for the risk cases above. `DEEPSEEK_MODEL` and `GLM_MODEL` override provider models.

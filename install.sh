@@ -28,6 +28,7 @@ echo "--- prerequisites"
 for c in claude git python3 curl; do command -v $c >/dev/null && echo "  ok: $c" || echo "  MISSING: $c (required)"; done
 command -v codex >/dev/null && echo "  ok: codex (Codex reviews on your ChatGPT plan)" || echo "  optional: codex CLI not found — reviews fall back to Claude reviewers (install: npm i -g @openai/codex, then 'codex login')"
 command -v bd >/dev/null && echo "  ok: bd (Beads tracker)" || echo "  optional: bd (Beads) not found — the skill uses the project's own tracker or asks you"
+command -v gitleaks >/dev/null && echo "  ok: gitleaks (pre-push secret scan)" || echo "  MISSING: gitleaks (required before any push; lane/secret-scan.sh blocks without it). Install: https://github.com/gitleaks/gitleaks"
 command -v docker >/dev/null && echo "  ok: docker (disposable test databases)" || echo "  optional: docker not found — agents cannot spin up disposable databases"
 case ":$PATH:" in *":$HOME/.local/bin:"*) echo "  ok: ~/.local/bin on PATH";; *) echo "  ACTION: add ~/.local/bin to PATH:  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc";; esac
 echo "--- API keys (kept only in your shell rc; never copied by this installer)"
